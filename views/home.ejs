@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('partials/head.ejs') %>
+</head>
+
+<body>
+  <%- include('partials/nav.ejs') %>
+
+  <div class="container text-center mt-5">
+    <h2 class="mb-4">Find Meals That Match Your Ingredients</h2>
+    <p class="text-muted mb-4">Enter an ingredient to discover recipes that fit your diet and goals.</p>
+
+    <form action="/recipes" method="get" class="mx-auto" style="max-width: 500px;">
+      <div class="input-group mb-3">
+        <input type="text" name="ingredient" class="form-control" placeholder="e.g., chicken, tomato, rice" required>
+        <button class="btn btn-success" type="submit">Find Recipes</button>
+      </div>
+    </form>
+
+    <div class="mt-3">
+      <a href="/recipes/random" class="btn btn-outline-success">Random Meal</a>
+    </div>
+
+    <hr class="my-5">
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm h-100">
+          <h5 class="mb-2 text-success">Track Macros</h5>
+          <p class="text-muted">Log your daily meals and see calorie totals at a glance.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm h-100">
+          <h5 class="mb-2 text-success">Save Favorites</h5>
+          <p class="text-muted">Bookmark recipes you love for quick access later.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm h-100">
+          <h5 class="mb-2 text-success">Discover Recipes</h5>
+          <p class="text-muted">Search by ingredient or get random ideas instantly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/foot.ejs') %>
+</body>
+
+</html>
