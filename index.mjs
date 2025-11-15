@@ -47,8 +47,9 @@ app.get('/recipes', async(req, res) => {
    res.render('recipes.ejs', { meals })
 });
 
-
-
+app.get("/login", async (req, res) => {
+   res.render("login.ejs", { title: "Login" });
+});
 
 app.get("/dbTest", async(req, res) => {
    try {
