@@ -7,26 +7,33 @@
     <%- include("partials/nav.ejs") %>
     
 
-    <div>
-        <% for (let meal of meals) {  %>
-            <img src="<%=meal.strMealThumb%>" width="250">
-            <h3><%= meal.strMeal %> </h3>
-            Top five ingredients
-            <ul>
-                    <li> <%=meal.strIngredient1%></li>
-                    <li> <%=meal.strIngredient2%> </li>
-                    <li> <%=meal.strIngredient3%> </li>
-                    <li> <%=meal.strIngredient4%> </li>
-                    <li> <%=meal.strIngredient5%> </li>
-            </ul>
-            <% if (meal.strYoutube) { %>
-                <p><a href="<%= meal.strYoutube %>" target="_blank" rel="noopener">Youtube Link</a></p>
-            <% } %>
-
-            <% if (meal.review) { %>
-                <p><strong>Review:</strong> <%= meal.review %></p>
-            <% } %>            
-            <br><hr>
+    <div class="two-column">
+        <% for (let meal of meals) { %>
+            <div class="meal-card">
+                <img src="<%= meal.strMealThumb %>" alt="<%= meal.strMeal %>">
+                <h3><%= meal.strMeal %></h3>
+                <strong style="font-size:.85rem;color:#555;">Top ingredients</strong>
+                <ul>
+                    <%
+                        let i = 1;
+                        while (true) {
+                            const ing = meal['strIngredient' + i];
+                            const meas = meal['strMeasure' + i];
+                            if (ing == null || (typeof ing === 'string' && ing.trim() === '')) break;
+                    %>
+                        <li><%= (meas || '').trim() %> <%= ing %></li>
+                    <%
+                            i++;
+                        }
+                    %>
+                </ul>
+                <br>
+                <% if (meal.strYoutube) { %>
+                    <button class="btn btn-success" id="YtBtn">
+                        <a href="<%= meal.strYoutube %>" target="_blank" rel="noopener">YouTube</a>
+                    </button>
+                <% } %>
+            </div>
         <% } %>
     </div>
 
