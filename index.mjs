@@ -51,6 +51,35 @@ app.get("/login", async (req, res) => {
    res.render("login.ejs", { title: "Login" });
 });
 
+app.get("/create", async (req, res) => {
+   res.render("create.ejs", { title: "Create" });
+});
+
+// fix this later, we will need the users table in the database to fully
+// implement user creation and authentication. 
+
+// Handle the POST from create.ejs (placeholder logic for now)
+app.post("/create", async (req, res) => {
+  const { email, password, confirm } = req.body;
+
+  // minimal guard; you’ll replace with real validation & DB insert
+  if (!email || !password || password !== confirm) {
+    return res.status(400).send("Invalid form submission.");
+  }
+
+  // TODO: insert into DB (users table) with hashed password
+  // Example (only if you already have a users table):
+  // await pool.execute(
+  //   "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+  //   [email, someHashedPassword]
+  // );
+
+  // for now, just redirect to login and fix later
+  res.redirect("/login");
+});
+
+
+
 app.get("/dbTest", async(req, res) => {
    try {
         const [rows] = await pool.query("SELECT CURDATE()");

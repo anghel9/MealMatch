@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account</title>
+    <%- include('partials/head.ejs') %>
+</head>
+
+<body>
+
+    <%- include('partials/nav.ejs') %>
+
+        <div>
+            <h2>Register to MealMatch</h2>
+
+            <form action="/login" method="GET">
+                <div>
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email"
+                        required>
+                </div>
+
+                <div>
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password"
+                        placeholder="Enter your password" required>
+                </div>
+
+                <div>
+                    <label for="confirm" class="form-label">Confirm password</label>
+                    <input type="password" class="form-control" id="confirm" name="confirm"
+                        placeholder="Re-enter your password" required>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-success mt-3">Create Account</button>
+                </div>
+
+                <div>
+                    <small>Have an account? <a href="/login">Login here</a>.</small>
+                </div>
+
+
+            </form>
+
+        </div>
+
+        <%- include('partials/foot.ejs') %>
+</body>
+
+</html>
