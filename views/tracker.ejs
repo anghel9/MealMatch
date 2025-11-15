@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head.ejs') %>
+  <title>Tracker</title>
+</head>
+<body>
+  <%- include('partials/nav.ejs') %>
+
+  <div class="container mt-4" style="max-width: 960px;">
+    <h2 class="mb-3">Daily Tracker</h2>
+    <p class="text-muted">Sample dashboard (placeholder until user accounts are ready).</p>
+
+    <% 
+      const t = (typeof totals !== 'undefined' && totals) ? totals : { calories: 1870, protein: 122, carbs: 210, fat: 62 };
+      const sampleEntries = (typeof entries !== 'undefined' && entries && entries.length) ? entries : [
+        { meal: 'Greek Yogurt + Berries', calories: 220, protein: 20, carbs: 28, fat: 4 },
+        { meal: 'Grilled Chicken Salad', calories: 480, protein: 42, carbs: 35, fat: 18 },
+        { meal: 'Salmon + Rice + Broccoli', calories: 650, protein: 46, carbs: 55, fat: 22 },
+        { meal: 'Protein Shake', calories: 220, protein: 30, carbs: 8,  fat: 5 },
+        { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
+      ];
+    %>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Calories</div><h4><%= t.calories %></h4></div></div>
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Protein</div><h4><%= t.protein %> g</h4></div></div>
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Carbs</div><h4><%= t.carbs %> g</h4></div></div>
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Fat</div><h4><%= t.fat %> g</h4></div></div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Meal</th>
+              <th>Calories</th>
+              <th>Protein (g)</th>
+              <th>Carbs (g)</th>
+              <th>Fat (g)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% sampleEntries.forEach(e => { %>
+              <tr>
+                <td><%= e.meal %></td>
+                <td><%= e.calories %></td>
+                <td><%= e.protein %></td>
+                <td><%= e.carbs %></td>
+                <td><%= e.fat %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/foot.ejs') %>
+</body>
+</html>

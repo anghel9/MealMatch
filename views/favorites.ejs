@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head.ejs') %>
+  <title>My Favorite Recipes</title>
+</head>
+<body>
+  <%- include('partials/nav.ejs') %>
+
+  <div class="container mt-4" style="max-width: 980px;">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="m-0">My Favorite Recipes</h2>
+
+
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          Sort
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="?sort=calories">Calories</a></li>
+          <li><a class="dropdown-item" href="?sort=protein">Protein</a></li>
+          <li><a class="dropdown-item" href="?sort=name">Name</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <% 
+
+      const favs = (typeof favorites !== 'undefined' && favorites?.length) ? favorites : [
+        { idMeal:'52771', strMeal:'Spaghetti Bolognese', strMealThumb:'https://www.themealdb.com/images/media/meals/ustsqw1468250014.jpg' },
+        { idMeal:'52818', strMeal:'Grilled Chicken Salad', strMealThumb:'https://www.themealdb.com/images/media/meals/1529446352.jpg' },
+        { idMeal:'53065', strMeal:'Veggie Stir Fry', strMealThumb:'https://www.themealdb.com/images/media/meals/wai9bw1619788844.jpg' },
+        { idMeal:'52959', strMeal:'Beef & Broccoli', strMealThumb:'https://www.themealdb.com/images/media/meals/1529444830.jpg' },
+      ];
+    %>
+
+
+    <ul class="list-group shadow-sm">
+      <% favs.forEach(f => { %>
+        <li class="list-group-item d-flex align-items-center">
+          <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3" style="width:64px;height:64px;object-fit:cover;">
+          <div class="flex-grow-1">
+            <div class="fw-semibold"><%= f.strMeal %></div>
+          </div>
+          <a class="btn btn-sm btn-outline-success me-2" href="https://www.themealdb.com/meal/<%= f.idMeal %>" target="_blank" rel="noopener">View</a>
+
+
+          <button class="btn btn-sm btn-outline-danger" disabled title="Login required">Remove</button>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+
+  <%- include('partials/foot.ejs') %>
+</body>
+</html>

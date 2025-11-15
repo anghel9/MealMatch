@@ -55,6 +55,16 @@ app.get("/create", async (req, res) => {
    res.render("create.ejs", { title: "Create" });
 });
 
+app.get("/favorites", async (req, res) => {
+  res.render("favorites.ejs"); 
+});
+
+app.get("/tracker", async (req, res) => {
+  res.render("tracker.ejs"); 
+});
+
+
+
 // fix this later, we will need the users table in the database to fully
 // implement user creation and authentication. 
 
