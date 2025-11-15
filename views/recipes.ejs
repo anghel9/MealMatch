@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include("partials/head.ejs")%>
+</head>
+<body>
+    <%- include("partials/nav.ejs") %>
+    
+
+    <div>
+        <% for (let meal of meals) {  %>
+            <img src="<%=meal.strMealThumb%>" width="250">
+            <h3><%= meal.strMeal %> </h3>
+            Top five ingredients
+            <ul>
+                    <li> <%=meal.strIngredient1%></li>
+                    <li> <%=meal.strIngredient2%> </li>
+                    <li> <%=meal.strIngredient3%> </li>
+                    <li> <%=meal.strIngredient4%> </li>
+                    <li> <%=meal.strIngredient5%> </li>
+            </ul>
+            <% if (meal.strYoutube) { %>
+                <p><a href="<%= meal.strYoutube %>" target="_blank" rel="noopener">Youtube Link</a></p>
+            <% } %>
+
+            <% if (meal.review) { %>
+                <p><strong>Review:</strong> <%= meal.review %></p>
+            <% } %>            
+            <br><hr>
+        <% } %>
+    </div>
+
+    
+
+    <footer>
+        <%- include("partials/foot.ejs")%>
+    </footer>
+</body>
+</html>
