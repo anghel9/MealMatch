@@ -1,34 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <%- include('partials/head.ejs') %>
   <title>Tracker</title>
 </head>
+
 <body>
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-4" style="max-width: 960px;">
-    <h2 class="mb-3">Daily Tracker</h2>
-    <p class="text-muted">Sample dashboard (placeholder until user accounts are ready).</p>
+    <h2 class="mb-1">Daily Tracker</h2>
 
-    <% 
-      const t = (typeof totals !== 'undefined' && totals) ? totals : { calories: 1870, protein: 122, carbs: 210, fat: 62 };
-      const sampleEntries = (typeof entries !== 'undefined' && entries && entries.length) ? entries : [
-        { meal: 'Greek Yogurt + Berries', calories: 220, protein: 20, carbs: 28, fat: 4 },
-        { meal: 'Grilled Chicken Salad', calories: 480, protein: 42, carbs: 35, fat: 18 },
-        { meal: 'Salmon + Rice + Broccoli', calories: 650, protein: 46, carbs: 55, fat: 22 },
-        { meal: 'Protein Shake', calories: 220, protein: 30, carbs: 8,  fat: 5 },
-        { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
-      ];
+    <% if (!isAuthenticated) { %>
+      <p class="text-muted mb-2">
+        Sample dashboard (placeholder until user accounts are ready).
+      </p>
+    <% } else { %>
+      <p class="text-muted mb-2">
+        View your daily calories and macros summary.
+      </p>
+    <% } %>
+
+    <% if (!isAuthenticated) { %>
+      <div class="alert alert-warning mt-3">
+        This is a <strong>sample tracker view</strong>.
+        Your entries here are not saved.
+        <br>
+        <a href="/create" class="alert-link">Create an account</a> or
+        <a href="/login" class="alert-link">log in</a> to track your own meals and macros.
+      </div>
+    <% } else { %>
+      <div class="alert alert-success mt-3">
+        Tracking meals for <strong><%= userName %></strong>.
+      </div>
+    <% } %>
+
+    <%
+      
+      let t;
+      if (typeof totals !== 'undefined' && totals) {
+        t = totals;
+      } else {
+        t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
+      }
+
+      // Entries: use real entries if provided, otherwise fallback to sample
+      let list;
+      if (typeof entries !== 'undefined' && entries && entries.length) {
+        list = entries;
+      } else {
+        list = [
+          { meal: 'Greek Yogurt + Berries',       calories: 220, protein: 20, carbs: 28, fat: 4 },
+          { meal: 'Grilled Chicken Salad',        calories: 480, protein: 42, carbs: 35, fat: 18 },
+          { meal: 'Salmon + Rice + Broccoli',     calories: 650, protein: 46, carbs: 55, fat: 22 },
+          { meal: 'Protein Shake',                calories: 220, protein: 30, carbs: 8,  fat: 5 },
+          { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
+        ];
+      }
     %>
 
+    
     <div class="row g-3 mb-3">
-      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Calories</div><h4><%= t.calories %></h4></div></div>
-      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Protein</div><h4><%= t.protein %> g</h4></div></div>
-      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Carbs</div><h4><%= t.carbs %> g</h4></div></div>
-      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Fat</div><h4><%= t.fat %> g</h4></div></div>
+      <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+          <div>Calories</div>
+          <h4><%= t.calories %></h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+          <div>Protein</div>
+          <h4><%= t.protein %> g</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+          <div>Carbs</div>
+          <h4><%= t.carbs %> g</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 text-center shadow-sm">
+          <div>Fat</div>
+          <h4><%= t.fat %> g</h4>
+        </div>
+      </div>
     </div>
 
+    
     <div class="card shadow-sm">
       <div class="table-responsive">
         <table class="table table-striped mb-0">
@@ -42,15 +102,23 @@
             </tr>
           </thead>
           <tbody>
-            <% sampleEntries.forEach(e => { %>
+            <% if (list.length === 0 && isAuthenticated) { %>
               <tr>
-                <td><%= e.meal %></td>
-                <td><%= e.calories %></td>
-                <td><%= e.protein %></td>
-                <td><%= e.carbs %></td>
-                <td><%= e.fat %></td>
+                <td colspan="5" class="text-center text-muted">
+                  No entries yet. Add a meal from the recipes page to start tracking.
+                </td>
               </tr>
-            <% }) %>
+            <% } else { %>
+              <% list.forEach(e => { %>
+                <tr>
+                  <td><%= e.meal %></td>
+                  <td><%= e.calories %></td>
+                  <td><%= e.protein %></td>
+                  <td><%= e.carbs %></td>
+                  <td><%= e.fat %></td>
+                </tr>
+              <% }) %>
+            <% } %>
           </tbody>
         </table>
       </div>
@@ -59,4 +127,5 @@
 
   <%- include('partials/foot.ejs') %>
 </body>
+
 </html>

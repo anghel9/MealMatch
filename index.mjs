@@ -1,26 +1,51 @@
 import express from "express";
-import mysql from 'mysql2/promise';
+import mysql from "mysql2/promise";
+import session from "express-session";
+import bcrypt from "bcrypt";
+
 const app = express();
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
+app.use(express.urlencoded({ extended: true }));
 
 //setting up database connection pool
 const pool = mysql.createPool({
-    host: "sh4ob67ph9l80v61.cbetxkdyhwsb.us-east-1.rds.amazonaws.com",
-    user: "w9c7lwn8um1o99yj",
-    password: "u3rw8lbcasz2h307",
-    database: "pyn5h5u7iu857dd2",
-    connectionLimit: 10,
-    waitForConnections: true
+   host: "sh4ob67ph9l80v61.cbetxkdyhwsb.us-east-1.rds.amazonaws.com",
+   user: "w9c7lwn8um1o99yj",
+   password: "u3rw8lbcasz2h307",
+   database: "pyn5h5u7iu857dd2",
+   connectionLimit: 10,
+   waitForConnections: true
 });
 
+app.set("trust proxy", 1);
+app.use(
+   session({
+      secret: "mealmatch secret",
+      resave: false,
+      saveUninitialized: true,
+   })
+);
+
+app.use((req, res, next) => {
+   res.locals.isAuthenticated = !!req.session.isAuthenticated;
+   res.locals.userName = req.session.userName || null;
+   next();
+});
+
+// middleware
+function requireLogin(req, res, next) {
+   if (req.session.isAuthenticated) return next();
+   return res.redirect("/login");
+}
+
 //routes
-app.get('/', async(req, res) => {
+app.get('/', async (req, res) => {
    res.render('home.ejs')
 });
 
-app.get('/recipes/random', async(req, res) => {
+app.get('/recipes/random', async (req, res) => {
    const url = `https://www.themealdb.com/api/json/v1/1/random.php`;
    let response = await fetch(url);
    let data = await response.json();
@@ -28,17 +53,16 @@ app.get('/recipes/random', async(req, res) => {
    res.render('recipes.ejs', { meals })
 });
 
-app.get('/searchByLetter', async(req, res) => {
+app.get('/searchByLetter', async (req, res) => {
    let letter = req.query.letter;
    const url = `https://www.themealdb.com/api/json/v1/1/search.php?f=${encodeURIComponent(letter)}`;
    let response = await fetch(url);
    let data = await response.json();
    const meals = data.meals || [];
-   res.render('recipess.ejs', { meals})
+   res.render('recipes.ejs', { meals })
 });
 
-app.get('/recipes', async(req, res) => {
- 
+app.get('/recipes', async (req, res) => {
    let keyword = req.query.keyword;
    const url = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
    let response = await fetch(url);
@@ -47,20 +71,109 @@ app.get('/recipes', async(req, res) => {
    res.render('recipes.ejs', { meals })
 });
 
+// show login page
 app.get("/login", async (req, res) => {
-   res.render("login.ejs", { title: "Login" });
+   if (req.session.isAuthenticated) {
+      return res.redirect("/");
+   }
+   res.render("login.ejs", { title: "Login", loginError: "" });
+});
+
+app.post("/login", async (req, res) => {
+   const { email, password } = req.body;
+
+   try {
+      // make sure that it is usersMM not users (since that is from lab7)
+      const [rows] = await pool.query(
+         "SELECT * FROM usersMM WHERE email = ?",
+         [email]
+      );
+
+      if (!rows.length) {
+         return res.render("login.ejs", {
+            title: "Login",
+            loginError: "Invalid email or password.",
+         });
+      }
+
+      const user = rows[0];
+
+      const match = await bcrypt.compare(password, user.password);
+      if (!match) {
+         return res.render("login.ejs", {
+            title: "Login",
+            loginError: "Invalid email or password.",
+         });
+      }
+
+      req.session.isAuthenticated = true;
+      req.session.userId = user.userID;
+      req.session.userName = user.username;
+
+      res.redirect("/");
+   } catch (err) {
+      console.error("Login error:", err);
+      res.status(500).send("Server error during login.");
+   }
+});
+
+app.get("/logout", (req, res) => {
+   req.session.destroy(() => {
+      res.redirect("/");
+   });
 });
 
 app.get("/create", async (req, res) => {
-   res.render("create.ejs", { title: "Create" });
+   if (req.session.isAuthenticated) {
+      return res.redirect("/");
+   }
+   res.render("create.ejs", { title: "Create Account", registerError: "" });
 });
 
+app.post("/create", async (req, res) => {
+   const { username, email, password, confirm } = req.body;
+
+   if (!username || !email || !password || password !== confirm){
+      return res.render("create.ejs", {
+         title: "Create Account",
+         registerError: "Please fill all fields and make sure passwords match.",   
+      });
+   }
+
+   try{
+      const [existing] = await pool.query(
+         "SELECT * FROM usersMM WHERE email = ? OR username = ?",
+         [email, username]
+      );
+
+      if (existing.length){
+         return res.render("create.ejs", {
+            title: "Create Account",
+            registerError: "Email or username already in use.",
+         });
+      }
+
+      const hash = await bcrypt.hash(password, 10);
+
+      await pool.query(
+         "INSERT INTO usersMM (username, email, password) VALUES (?, ?, ?)",
+         [username, email, hash]
+      );
+
+      res.redirect("/login");
+   } catch (err){
+      console.error("Registration error:", err);
+      res.status(500).send("Server error during registration.");
+   }
+});
+
+// this is viewbable by everyone for now, but we will restrict it later
 app.get("/favorites", async (req, res) => {
-  res.render("favorites.ejs"); 
+   res.render("favorites.ejs");
 });
 
 app.get("/tracker", async (req, res) => {
-  res.render("tracker.ejs"); 
+   res.render("tracker.ejs");
 });
 
 
@@ -69,37 +182,36 @@ app.get("/tracker", async (req, res) => {
 // implement user creation and authentication. 
 
 // Handle the POST from create.ejs (placeholder logic for now)
-app.post("/create", async (req, res) => {
-  const { email, password, confirm } = req.body;
+// (NOTE: this block is now obsolete; keeping the comment, but route removed)
 
-  // minimal guard; you’ll replace with real validation & DB insert
-  if (!email || !password || password !== confirm) {
-    return res.status(400).send("Invalid form submission.");
-  }
+//   // minimal guard; you’ll replace with real validation & DB insert
+//   if (!email || !password || password !== confirm) {
+//      return res.status(400).send("Invalid form submission.");
+//   }
 
-  // TODO: insert into DB (users table) with hashed password
-  // Example (only if you already have a users table):
-  // await pool.execute(
-  //   "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-  //   [email, someHashedPassword]
-  // );
+//   // TODO: insert into DB (users table) with hashed password
+//   // Example (only if you already have a users table):
+//   // await pool.execute(
+//   //   "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+//   //   [email, someHashedPassword]
+//   // );
 
-  // for now, just redirect to login and fix later
-  res.redirect("/login");
-});
-
+//   // for now, just redirect to login and fix later
+//   res.redirect("/login");
+// });
 
 
-app.get("/dbTest", async(req, res) => {
+
+app.get("/dbTest", async (req, res) => {
    try {
-        const [rows] = await pool.query("SELECT CURDATE()");
-        res.send(rows);
-    } catch (err) {
-        console.error("Database error:", err);
-        res.status(500).send("Database error!");
-    }
+      const [rows] = await pool.query("SELECT CURDATE()");
+      res.send(rows);
+   } catch (err) {
+      console.error("Database error:", err);
+      res.status(500).send("Database error!");
+   }
 });//dbTest
 
-app.listen(3000, ()=>{
-    console.log("Express server running")
-})
+app.listen(3000, () => {
+   console.log("Express server running")
+});

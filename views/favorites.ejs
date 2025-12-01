@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <%- include('partials/head.ejs') %>
   <title>My Favorite Recipes</title>
 </head>
+
 <body>
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-4" style="max-width: 980px;">
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h2 class="m-0">My Favorite Recipes</h2>
-
 
       <div class="dropdown">
         <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
@@ -24,28 +25,87 @@
       </div>
     </div>
 
-    <% 
+    <% if (!isAuthenticated) { %>
+      <div class="alert alert-warning mt-3">
+        You’re currently viewing <strong>sample favorite meals</strong>.
+        <br>
+        <a href="/create" class="alert-link">Create an account</a> or
+        <a href="/login" class="alert-link">log in</a> to save your own favorites.
+      </div>
+    <% } else { %>
+      <div class="alert alert-success mt-3">
+        Logged in as <strong><%= userName %></strong>. These are your saved favorites.
+      </div>
+    <% } %>
 
-      const favs = (typeof favorites !== 'undefined' && favorites?.length) ? favorites : [
-        { idMeal:'52771', strMeal:'Spaghetti Bolognese', strMealThumb:'https://www.themealdb.com/images/media/meals/ustsqw1468250014.jpg' },
-        { idMeal:'52818', strMeal:'Grilled Chicken Salad', strMealThumb:'https://www.themealdb.com/images/media/meals/1529446352.jpg' },
-        { idMeal:'53065', strMeal:'Veggie Stir Fry', strMealThumb:'https://www.themealdb.com/images/media/meals/wai9bw1619788844.jpg' },
-        { idMeal:'52959', strMeal:'Beef & Broccoli', strMealThumb:'https://www.themealdb.com/images/media/meals/1529444830.jpg' },
+    <%
+      // Sample favorites (ThemealDB)
+      const sampleFavs = [
+        {
+          idMeal: '52771',
+          strMeal: 'Spaghetti Bolognese',
+          strMealThumb: 'https://www.themealdb.com/images/media/meals/ustsqw1468250014.jpg'
+        },
+        {
+          idMeal: '52818',
+          strMeal: 'Grilled Chicken Salad',
+          strMealThumb: 'https://www.themealdb.com/images/media/meals/1529446352.jpg'
+        },
+        {
+          idMeal: '53065',
+          strMeal: 'Veggie Stir Fry',
+          strMealThumb: 'https://www.themealdb.com/images/media/meals/wai9bw1619788844.jpg'
+        },
+        {
+          idMeal: '52959',
+          strMeal: 'Beef & Broccoli',
+          strMealThumb: 'https://www.themealdb.com/images/media/meals/1529444830.jpg'
+        }
       ];
+
+      let favs;
+
+      // If logged in AND a "favorites" array is passed from the server, use that.
+      // Otherwise, fall back to the sample favorites.
+      if (
+        isAuthenticated &&
+        typeof favorites !== 'undefined' &&
+        Array.isArray(favorites) &&
+        favorites.length > 0
+      ) {
+        favs = favorites;
+      } else {
+        favs = sampleFavs;
+      }
     %>
 
-
-    <ul class="list-group shadow-sm">
+    <ul class="list-group shadow-sm mt-3">
       <% favs.forEach(f => { %>
         <li class="list-group-item d-flex align-items-center">
-          <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3" style="width:64px;height:64px;object-fit:cover;">
+          <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3"
+               style="width:64px;height:64px;object-fit:cover;">
           <div class="flex-grow-1">
             <div class="fw-semibold"><%= f.strMeal %></div>
           </div>
-          <a class="btn btn-sm btn-outline-success me-2" href="https://www.themealdb.com/meal/<%= f.idMeal %>" target="_blank" rel="noopener">View</a>
 
+          <a class="btn btn-sm btn-outline-success me-2"
+             href="https://www.themealdb.com/meal/<%= f.idMeal %>"
+             target="_blank" rel="noopener">
+            View
+          </a>
 
-          <button class="btn btn-sm btn-outline-danger" disabled title="Login required">Remove</button>
+          <% if (isAuthenticated) { %>
+            <!-- Real remove button when logged in -->
+            <form method="POST" action="/favorites/remove" class="m-0">
+              <input type="hidden" name="mealId" value="<%= f.idMeal %>">
+              <button class="btn btn-sm btn-outline-danger">Remove</button>
+            </form>
+          <% } else { %>
+            <!-- Disabled when not logged in -->
+            <button class="btn btn-sm btn-outline-danger" disabled title="Login required">
+              Remove
+            </button>
+          <% } %>
         </li>
       <% }) %>
     </ul>
@@ -53,4 +113,5 @@
 
   <%- include('partials/foot.ejs') %>
 </body>
+
 </html>
