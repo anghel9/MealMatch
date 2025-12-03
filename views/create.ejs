@@ -2,75 +2,88 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <%- include('partials/head.ejs') %>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/public/css/styles.css" rel="stylesheet">
     <title>Create Account</title>
 
 
-
-    <style>
-      .loginDiv {
-        position: relative;
-        display: inline-block;
-      }
-
-      .loginIcon {
-        position: absolute;
-        right: 5px;
-        top: 3px;
-        cursor: pointer;
-      }
-    </style>
 </head>
 
-<body class="text-center">
+<body>
   <%- include('partials/nav.ejs') %>
 
     <div class="container mt-5" style="max-width: 520px;">
       <h2 class="text-center mb-4">Register to MealMatch</h2>
 
-      <form action="/create" method="post" class="card shadow-sm p-4">
-        <div class="mb-3">
-          <label for="email" class="form-label">Email address</label>
-          <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+      <% if (registerError) { %>
+        <div class="alert alert-danger">
+          <%= registerError %>
         </div>
+        <% } %>
 
-        <div class="loginDiv mb-3">
-          <input type="password" class="form-control" id="password" name="password" required>Password</label>
-          <span class="bi bi-eye loginIcon" id="eyeIcon1"></span>
-        </div>
+          <form action="/create" method="post" class="card shadow-sm p-4">
+            <div class="mb-3 text-start">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" name="username" placeholder="Choose a username"
+                required>
+            </div>
 
-        <div class="loginDiv mb-3">
-          <input type="password" class="form-control" id="confirm" name="confirm" required>Confirm Password</label>
-          <span class="bi bi-eye loginIcon" id="eyeIcon2"></span>
-        </div>
+            <div class="mb-3 text-start">
+              <label for="email" class="form-label">Email address</label>
+              <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+            </div>
 
-        <div class="d-grid">
-          <button type="submit" class="btn btn-success">Create Account</button>
-        </div>
+            <div class="mb-3 text-start">
+              <label for="password" class="form-label">Password</label>
+              <div class="password-wrapper">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Enter a password"
+                  required>
+                <span class="bi bi-eye password-toggle" data-target="password"></span>
+              </div>
+            </div>
 
-        <div class="text-center mt-3">
-          <small>Have an account? <a href="/login" class="text-success text-decoration-none">Login here</a>.</small>
-        </div>
-      </form>
+            <div class="mb-3 text-start">
+              <label for="confirm" class="form-label">Confirm Password</label>
+              <div class="password-wrapper">
+                <input type="password" class="form-control" id="confirm" name="confirm"
+                  placeholder="Re-enter your password" required>
+                <span class="bi bi-eye password-toggle" data-target="confirm"></span>
+              </div>
+            </div>
+
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success">Create Account</button>
+            </div>
+
+            <div class="text-center mt-3">
+              <small>Have an account?
+                <a href="/login" class="text-success text-decoration-none">Login here</a>.
+              </small>
+            </div>
+          </form>
     </div>
 
     <%- include('partials/foot.ejs') %>
 
       <script>
-        const eyeIcon = document.querySelector("#eyeIcon");;
-        eyeIcon.addEventListener("click", () => {
-          const isHidden = pwd.type === "password";
-          pwd.type = (isHidden) ? "text" : "password";
-          eyeIcon.classList.toggle("bi-eye", !isHidden);
-          eyeIcon.classList.toggle("bi-eye-slash", isHidden);
-        });
+        document.querySelectorAll('.password-toggle').forEach(icon => {
+          const input = document.getElementById(icon.getAttribute(icon.dataset.target));
+
+          icon.addEventListener('click', () => {
+            const hidden = input.type === 'password';
+            input.type = hidden ? 'text' : 'password';
+
+            icon.classList.toggle('bi-eye', !hidden);
+            icon.classList.toggle('bi-eye-slash', hidden);
+
+          })
+        })
+
       </script>
 </body>
-
-
 
 </html>
