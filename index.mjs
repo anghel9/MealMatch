@@ -1,8 +1,10 @@
+import 'dotenv/config';
 import express from "express";
 import mysql from "mysql2/promise";
 import session from "express-session";
 import bcrypt from "bcrypt";
 
+const apiKey= process.env.API_KEY;
 const app = express();
 
 app.set("view engine", "ejs");
@@ -11,10 +13,10 @@ app.use(express.urlencoded({ extended: true }));
 
 //setting up database connection pool
 const pool = mysql.createPool({
-   host: "sh4ob67ph9l80v61.cbetxkdyhwsb.us-east-1.rds.amazonaws.com",
-   user: "w9c7lwn8um1o99yj",
-   password: "u3rw8lbcasz2h307",
-   database: "pyn5h5u7iu857dd2",
+   host: process.env.HOST,
+   user: process.env.DB_USER,
+   password: process.env.DB_PASSWORD,
+   database: process.env.DATABASE,
    connectionLimit: 10,
    waitForConnections: true
 });
@@ -46,29 +48,64 @@ app.get('/', async (req, res) => {
 });
 
 app.get('/recipes/random', async (req, res) => {
-   const url = `https://www.themealdb.com/api/json/v1/1/random.php`;
-   let response = await fetch(url);
-   let data = await response.json();
-   const meals = data.meals || [];
-   res.render('recipes.ejs', { meals })
-});
-
-app.get('/searchByLetter', async (req, res) => {
-   let letter = req.query.letter;
-   const url = `https://www.themealdb.com/api/json/v1/1/search.php?f=${encodeURIComponent(letter)}`;
-   let response = await fetch(url);
-   let data = await response.json();
-   const meals = data.meals || [];
-   res.render('recipes.ejs', { meals })
+   try {
+      const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
+      let response = await fetch(url);
+      let data = await response.json();
+      
+      // Check if Spoonacular limit hit
+      if (data.code === 402 || data.status === 'failure') {
+         console.log("Spoonacular limit reached, using TheMealDB...");
+         const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/random.php`;
+         response = await fetch(fallbackUrl);
+         data = await response.json();
+         const meals = data.meals || [];
+         return res.render('recipesFallback.ejs', { meals });
+      }
+      
+      const meals = data.recipes || [];
+      res.render('recipes.ejs', { meals });
+   } catch (err) {
+      console.error("API error:", err);
+      res.status(500).send("Error fetching recipes");
+   }
 });
 
 app.get('/recipes', async (req, res) => {
    let keyword = req.query.keyword;
-   const url = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
-   let response = await fetch(url);
-   let data = await response.json();
-   const meals = data.meals || [];
-   res.render('recipes.ejs', { meals })
+   
+   try {
+      const url = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(keyword)}&number=9`;
+      let response = await fetch(url);
+      let data = await response.json();
+      
+      // Check if Spoonacular limit hit
+      if (data.code === 402 || data.status === 'failure') {
+         console.log("Spoonacular limit reached, using TheMealDB...");
+         const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
+         response = await fetch(fallbackUrl);
+         data = await response.json();
+         const meals = data.meals || [];
+         return res.render('recipesFallback.ejs', { meals });
+      }
+      
+      if (!Array.isArray(data)) {
+         return res.render('recipes.ejs', { meals: [] });
+      }
+      
+      const meals = await Promise.all(
+         data.map(async (recipe) => {
+            const detailUrl = `https://api.spoonacular.com/recipes/${recipe.id}/information?apiKey=${apiKey}`;
+            const detailResponse = await fetch(detailUrl);
+            return await detailResponse.json();
+         })
+      );
+      
+      res.render('recipes.ejs', { meals });
+   } catch (err) {
+      console.error("API error:", err);
+      res.status(500).send("Error fetching recipes");
+   }
 });
 
 // show login page
