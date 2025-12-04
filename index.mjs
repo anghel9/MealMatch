@@ -44,7 +44,7 @@ function requireLogin(req, res, next) {
 app.get('/', async (req, res) => {
    res.render('home.ejs')
 });
-
+git 
 app.get('/recipes/random', async (req, res) => {
    const url = `https://www.themealdb.com/api/json/v1/1/random.php`;
    let response = await fetch(url);
