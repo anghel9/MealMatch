@@ -10,28 +10,27 @@
     <div class="two-column">
         <% for (let meal of meals) { %>
             <div class="meal-card">
-                <img src="<%= meal.strMealThumb %>" alt="<%= meal.strMeal %>">
-                <h3><%= meal.strMeal %></h3>
+                <img src="<%= meal.image %>">
+                <h3><%= meal.title %></h3>
                 <strong style="font-size:.85rem;color:#555;">Top ingredients</strong>
                 <ul>
-                    <%
-                        let i = 1;
-                        while (true) {
-                            const ing = meal['strIngredient' + i];
-                            const meas = meal['strMeasure' + i];
-                            if (ing == null || (typeof ing === 'string' && ing.trim() === '')) break;
-                    %>
-                        <li><%= (meas || '').trim() %> <%= ing %></li>
-                    <%
-                            i++;
-                        }
-                    %>
+                    <% if (meal.extendedIngredients && meal.extendedIngredients.length > 0) { %>
+                        <% for (let ingredient of meal.extendedIngredients) { %>
+                            <li>
+                                <%= ingredient.amount %> 
+                                <%= ingredient.unit %> 
+                                of <%= ingredient.name %>
+                            </li>
+                        <% } %>
+                    <% } else { %>
+                        <li>No ingredients available</li>
+                    <% } %>
                 </ul>
-                <br>
-                <% if (meal.strYoutube) { %>
-                    <button class="btn btn-success" id="YtBtn">
-                        <a href="<%= meal.strYoutube %>" target="_blank" rel="noopener">YouTube</a>
-                    </button>
+                
+                <% if (meal.instructions) { %>
+                    <strong style="font-size:.85rem;color:#555;">Instructions</strong>
+                    <p style="font-size:.8rem;color:#555;">Ready in <%=meal.readyInMinutes%> minutes </p>
+                    <div id="instructions"><%-meal.instructions%></div>
                 <% } %>
             </div>
         <% } %>

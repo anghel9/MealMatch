@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include("partials/head.ejs")%>
+</head>
+<body>
+    <%- include("partials/nav.ejs") %>
+    
+
+    <div class="two-column">
+        <% for (let meal of meals) { %>
+            <div class="meal-card">
+                <img src="<%= meal.strMealThumb %>" alt="<%= meal.strMeal %>">
+                <h3><%= meal.strMeal %></h3>
+                <strong style="font-size:.85rem;color:#555;">Top ingredients</strong>
+                <ul>
+                    <%
+                        let i = 1;
+                        while (true) {
+                            const ing = meal['strIngredient' + i];
+                            const meas = meal['strMeasure' + i];
+                            if (ing == null || (typeof ing === 'string' && ing.trim() === '')) break;
+                    %>
+                        <li><%= (meas || '').trim() %> <%= ing %></li>
+                    <%
+                            i++;
+                        }
+                    %>
+                </ul>
+                <br>
+                <% if (meal.strYoutube) { %>
+                    <button class="btn btn-success" id="YtBtn">
+                        <a href="<%= meal.strYoutube %>" target="_blank" rel="noopener">YouTube</a>
+                    </button>
+                <% } %>
+            </div>
+        <% } %>
+    </div>
+    <footer>
+        <%- include("partials/foot.ejs")%>
+    </footer>
+</body>
+</html>
