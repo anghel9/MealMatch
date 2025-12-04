@@ -123,6 +123,14 @@ app.get("/login", async (req, res) => {
    res.render("login.ejs", { title: "Login", loginError: "" });
 });
 
+//ADDING IN THE ADMIN PAGE
+app.get("/admin", async (req, res) => {
+   if (req.session.isAuthenticated) {
+      return res.redirect("/");
+   }
+   res.render("admin.ejs", { title: "Admin Login", loginError: "" });
+});
+
 app.post("/login", async (req, res) => {
    const { email, password } = req.body;
 
