@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+   
+    <link href="/public/css/styles.css" rel="stylesheet">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <%- include('partials/nav.ejs') %>
+
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">Admin Dashboard</h2>
+
+        <div class="card shadow-sm p-4">
+            <h4>Manage Users</h4>
+            <ul>
+                <li><a href="/admin/users">View All Users</a></li>
+                <li><a href="/admin/users/create">Create New User</a></li>
+            </ul>
+        </div>
+
+        <div class="card shadow-sm p-4 mt-4">
+            <h4>Manage Meals</h4>
+            <ul>
+                <li><a href="/admin/meals">View All Meals</a></li>
+                <li><a href="/admin/meals/create">Create New Meal</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <%- include('partials/foot.ejs') %>
+</body>
+</html>

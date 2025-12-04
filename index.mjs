@@ -108,6 +108,13 @@ app.get('/recipes', async (req, res) => {
    }
 });
 
+//show Admin login page
+app.get("/admin", async (req, res) => {
+   if (req.session.isAuthenticated) {
+      return res.redirect("/");
+   }
+   res.render("admin.ejs", { title: "Admin Login", loginError: "" });
+});
 // show login page
 app.get("/login", async (req, res) => {
    if (req.session.isAuthenticated) {
