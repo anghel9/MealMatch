@@ -46,7 +46,7 @@ function requireLogin(req, res, next) {
 app.get('/', async (req, res) => {
    res.render('home.ejs')
 });
-git 
+ 
 app.get('/recipes/random', async (req, res) => {
    try {
       const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
