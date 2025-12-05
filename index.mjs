@@ -50,7 +50,7 @@ app.get('/', async (req, res) => {
    res.render('home.ejs')
 });
 
-async function extractNutritionWithAI(recipeData) {
+async function extractNutrition(recipeData) {
    const prompt = 
    `Analyze this recipe and return ONLY a JSON object with nutritional information per serving.
    Recipe: ${JSON.stringify(recipeData)}
