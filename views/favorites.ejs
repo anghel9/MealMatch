@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <%- include('partials/head.ejs') %>
   <title>My Favorite Recipes</title>
@@ -10,6 +9,7 @@
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-4" style="max-width: 980px;">
+    
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h2 class="m-0">My Favorite Recipes</h2>
 
@@ -25,6 +25,7 @@
       </div>
     </div>
 
+    <!-- Top alert: different for guest vs logged in -->
     <% if (!isAuthenticated) { %>
       <div class="alert alert-warning mt-3">
         You’re currently viewing <strong>sample favorite meals</strong>.
@@ -38,8 +39,8 @@
       </div>
     <% } %>
 
-    <%
-      // Sample favorites (ThemealDB)
+    <% 
+      // Sample favorites to show ONLY for guests
       const sampleFavs = [
         {
           idMeal: '52771',
@@ -65,53 +66,63 @@
 
       let favs;
 
-      // If logged in AND a "favorites" array is passed from the server, use that.
-      // Otherwise, fall back to the sample favorites.
-      if (
-        isAuthenticated &&
-        typeof favorites !== 'undefined' &&
-        Array.isArray(favorites) &&
-        favorites.length > 0
-      ) {
-        favs = favorites;
-      } else {
+      if (!isAuthenticated) {
+        // GUEST: always show sample favorites
         favs = sampleFavs;
+      } else {
+        // LOGGED IN:
+        //  - if a "favorites" array is passed in and has items, use it
+        //  - otherwise start empty (no favorites yet)
+        if (typeof favorites !== 'undefined' &&
+            Array.isArray(favorites) &&
+            favorites.length > 0) {
+          favs = favorites;
+        } else {
+          favs = [];
+        }
       }
     %>
 
     <ul class="list-group shadow-sm mt-3">
-      <% favs.forEach(f => { %>
-        <li class="list-group-item d-flex align-items-center">
-          <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3"
-               style="width:64px;height:64px;object-fit:cover;">
-          <div class="flex-grow-1">
-            <div class="fw-semibold"><%= f.strMeal %></div>
-          </div>
-
-          <a class="btn btn-sm btn-outline-success me-2"
-             href="https://www.themealdb.com/meal/<%= f.idMeal %>"
-             target="_blank" rel="noopener">
-            View
-          </a>
-
-          <% if (isAuthenticated) { %>
-            <!-- Real remove button when logged in -->
-            <form method="POST" action="/favorites/remove" class="m-0">
-              <input type="hidden" name="mealId" value="<%= f.idMeal %>">
-              <button class="btn btn-sm btn-outline-danger">Remove</button>
-            </form>
-          <% } else { %>
-            <!-- Disabled when not logged in -->
-            <button class="btn btn-sm btn-outline-danger" disabled title="Login required">
-              Remove
-            </button>
-          <% } %>
+      <% if (isAuthenticated && favs.length === 0) { %>
+        <!-- Logged in, but no favorites yet -->
+        <li class="list-group-item text-center text-muted">
+          You don’t have any favorites yet. Browse recipes and add some!
         </li>
-      <% }) %>
+      <% } else { %>
+        <% favs.forEach(f => { %>
+          <li class="list-group-item d-flex align-items-center">
+            <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3"
+                 style="width:64px;height:64px;object-fit:cover;">
+
+            <div class="flex-grow-1">
+              <div class="fw-semibold"><%= f.strMeal %></div>
+            </div>
+
+            <a class="btn btn-sm btn-outline-success me-2"
+               href="https://www.themealdb.com/meal/<%= f.idMeal %>"
+               target="_blank" rel="noopener">
+              View
+            </a>
+
+            <% if (isAuthenticated) { %>
+              <!-- Real remove button when logged in (POST to route you’ll add later) -->
+              <form method="POST" action="/favorites/remove" class="m-0">
+                <input type="hidden" name="mealId" value="<%= f.idMeal %>">
+                <button class="btn btn-sm btn-outline-danger">Remove</button>
+              </form>
+            <% } else { %>
+              <!-- Disabled remove when not logged in -->
+              <button class="btn btn-sm btn-outline-danger" disabled title="Login required">
+                Remove
+              </button>
+            <% } %>
+          </li>
+        <% }) %>
+      <% } %>
     </ul>
   </div>
 
   <%- include('partials/foot.ejs') %>
 </body>
-
 </html>

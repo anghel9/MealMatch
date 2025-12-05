@@ -36,29 +36,32 @@
       </div>
     <% } %>
 
-    <%
-      
-      let t;
-      if (typeof totals !== 'undefined' && totals) {
-        t = totals;
-      } else {
-        t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
-      }
 
-      // Entries: use real entries if provided, otherwise fallback to sample
-      let list;
-      if (typeof entries !== 'undefined' && entries && entries.length) {
-        list = entries;
-      } else {
-        list = [
-          { meal: 'Greek Yogurt + Berries',       calories: 220, protein: 20, carbs: 28, fat: 4 },
-          { meal: 'Grilled Chicken Salad',        calories: 480, protein: 42, carbs: 35, fat: 18 },
-          { meal: 'Salmon + Rice + Broccoli',     calories: 650, protein: 46, carbs: 55, fat: 22 },
-          { meal: 'Protein Shake',                calories: 220, protein: 30, carbs: 8,  fat: 5 },
-          { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
-        ];
-      }
-    %>
+    <%
+  let t;
+  let list;
+
+  if (!isAuthenticated) {
+    // GUEST: sample totals + sample entries
+    t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
+    list = [
+      { meal: 'Greek Yogurt + Berries',       calories: 220, protein: 20, carbs: 28, fat: 4 },
+      { meal: 'Grilled Chicken Salad',        calories: 480, protein: 42, carbs: 35, fat: 18 },
+      { meal: 'Salmon + Rice + Broccoli',     calories: 650, protein: 46, carbs: 55, fat: 22 },
+      { meal: 'Protein Shake',                calories: 220, protein: 30, carbs: 8,  fat: 5 },
+      { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
+    ];
+  } else {
+    // LOGGED IN: use real data if provided, otherwise start empty
+    t = (typeof totals !== 'undefined' && totals)
+        ? totals
+        : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+    list = (typeof entries !== 'undefined' && entries && entries.length)
+        ? entries
+        : [];
+  }
+%>
 
     
     <div class="row g-3 mb-3">
