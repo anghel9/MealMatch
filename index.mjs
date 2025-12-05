@@ -85,12 +85,11 @@ app.post("/tracker/add", requireLogin, async (req, res) => {
 
       // Insert into database
       await pool.query(
-         `INSERT INTO tracker (userID, recipeID, recipeTitle, calories, protein, fat, carbs, fiber, sugar, sodium, date_logged) 
+         `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, fiber, sugar, sodium, date_logged) 
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
          [
             userId,
             recipeId,
-            recipeTitle,
             nutrition.calories,
             nutrition.protein,
             nutrition.fat,
@@ -119,64 +118,65 @@ app.get("/tracker/data", requireLogin, async (req, res) => {
 });
 
 app.get('/recipes/random', async (req, res) => {
-  try {
-    const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
-    let response = await fetch(url);
-    let data = await response.json();
+   try {
+      const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
+      let response = await fetch(url);
+      let data = await response.json();
+      console.log("Spoonacular response:", data);
+      // Check if Spoonacular limit hit
+      if (data.code === 402 || data.status === 'failure') {
+         console.log("Spoonacular limit reached, using TheMealDB...");
+         const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/random.php`;
+         response = await fetch(fallbackUrl);
+         data = await response.json();
+         const meals = data.meals || [];
+         return res.render('recipesFallback.ejs', { meals });
+      }
 
-    // Check if Spoonacular limit hit
-    if (data.code === 402 || data.status === 'failure') {
-      console.log("Spoonacular limit reached, using TheMealDB...");
-      const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/random.php`;
-      response = await fetch(fallbackUrl);
-      data = await response.json();
-      const meals = data.meals || [];
-      return res.render('recipesFallback.ejs', { meals });
-    }
-
-    const meals = data.recipes || [];
-    res.render('recipes.ejs', { meals });
-  } catch (err) {
-    console.error("API error:", err);
-    res.status(500).send("Error fetching recipes");
-  }
+      const meals = data.recipes || [];
+      
+      res.render('recipes.ejs', { meals });
+   } catch (err) {
+      console.error("API error:", err);
+      res.status(500).send("Error fetching recipes");
+   }
 });
 
 app.get('/recipes', async (req, res) => {
   let keyword = req.query.keyword;
 
-  try {
-    const url = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(keyword)}&number=9`;
-    let response = await fetch(url);
-    let data = await response.json();
+   try {
+      const url = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(keyword)}&number=9`;
+      let response = await fetch(url);
+      let data = await response.json();
+      console.log("Spoonacular response:", data);
+      //Check if Spoonacular limit hit
+      if (data.code === 402 || data.status === 'failure') {
+         console.log("Spoonacular limit reached, using TheMealDB...");
+         const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
+         response = await fetch(fallbackUrl);
+         data = await response.json();
+         const meals = data.meals || [];
+         return res.render('recipesFallback.ejs', { meals });
+      }
 
-    // Check if Spoonacular limit hit
-    if (data.code === 402 || data.status === 'failure') {
-      console.log("Spoonacular limit reached, using TheMealDB...");
-      const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
-      response = await fetch(fallbackUrl);
-      data = await response.json();
-      const meals = data.meals || [];
-      return res.render('recipesFallback.ejs', { meals });
-    }
+      if (!Array.isArray(data)) {
+         return res.render('recipes.ejs', { meals: [] });
+      }
 
-    if (!Array.isArray(data)) {
-      return res.render('recipes.ejs', { meals: [] });
-    }
-
-    const meals = await Promise.all(
-      data.map(async (recipe) => {
-        const detailUrl = `https://api.spoonacular.com/recipes/${recipe.id}/information?apiKey=${apiKey}`;
-        const detailResponse = await fetch(detailUrl);
-        return await detailResponse.json();
-      })
-    );
-
-    res.render('recipes.ejs', { meals });
-  } catch (err) {
-    console.error("API error:", err);
-    res.status(500).send("Error fetching recipes");
-  }
+      const meals = await Promise.all(
+         data.map(async (recipe) => {
+         const detailUrl = `https://api.spoonacular.com/recipes/${recipe.id}/information?apiKey=${apiKey}`;
+         const detailResponse = await fetch(detailUrl);
+         return await detailResponse.json();
+         })
+      );
+      
+      res.render('recipes.ejs', { meals });
+   } catch (err) {
+      console.error("API error:", err);
+      res.status(500).send("Error fetching recipes");
+   }
 });
 
 // show login page
