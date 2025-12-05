@@ -46,12 +46,7 @@ function requireLogin(req, res, next) {
 
 //routes
 app.get('/', async (req, res) => {
-<<<<<<< HEAD
   res.render('home.ejs');
-=======
-   console.log(response.text);
-   res.render('home.ejs')
->>>>>>> ab9e71288073533bb800453fdffef65f3af529a0
 });
 
 async function extractNutrition(recipeData) {
@@ -80,6 +75,48 @@ async function extractNutrition(recipeData) {
    const jsonText = response.text.replace(/```json\n?|\n?```/g, '').trim();
    return JSON.parse(jsonText);
 }
+
+app.post("/tracker/add", requireLogin, async (req, res) => {
+   const { recipeId, recipeTitle, recipeData } = req.body;
+   const userId = req.session.userId;
+
+   try {
+      const nutrition = await extractNutrition(JSON.parse(recipeData));
+
+      // Insert into database
+      await pool.query(
+         `INSERT INTO tracker (userID, recipeID, recipeTitle, calories, protein, fat, carbs, fiber, sugar, sodium, date_logged) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+         [
+            userId,
+            recipeId,
+            recipeTitle,
+            nutrition.calories,
+            nutrition.protein,
+            nutrition.fat,
+            nutrition.carbs
+         ]
+      );
+
+      res.json({ success: true, nutrition });
+   } catch (err) {
+      console.error("Tracker error:", err);
+      res.status(500).json({ error: "Failed to add to tracker" });
+   }
+});
+
+app.get("/tracker/data", requireLogin, async (req, res) => {
+   try {
+      const [rows] = await pool.query(
+         "SELECT * FROM tracker WHERE userID = ? ORDER BY date_logged DESC",
+         [req.session.userId]
+      );
+      res.json(rows);
+   } catch (err) {
+      console.error("Tracker fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch tracker data" });
+   }
+});
 
 app.get('/recipes/random', async (req, res) => {
   try {
