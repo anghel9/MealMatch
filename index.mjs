@@ -110,18 +110,25 @@ app.get('/recipes', async (req, res) => {
 
 
 //ADDING IN THE ADMIN PAGE
-app.get("/admin", async (req, res) => {
-   if (req.session.isAuthenticated) {
-      return res.redirect("/adminDashboard.ejs");
-   }
-   res.render("admin.ejs", { title: "Admin Login", loginError: "" });
+app.get("/admin", (req, res) => {
+  if (req.session.isAuthenticated) {
+    return res.redirect("/admin/dashboard");
+  }
+  res.render("admin.ejs", { loginError: "" });
 });
 
-app.post('/adminProcess', async (req, res) => {
+
+app.get("/admin/dashboard", (req, res) => {
+  if (!req.session.isAuthenticated) {
+    return res.redirect("/adminDashboard");
+  }
+  res.render("adminDashboard.ejs");
+});
+
+app.post("/adminProcess", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Query the database for this username
     const sql = `
       SELECT userId, username, password AS hashedPassword, firstName, lastName
       FROM users
@@ -130,37 +137,38 @@ app.post('/adminProcess', async (req, res) => {
     `;
     const [rows] = await pool.query(sql, [username]);
 
-    // If no user found
+    // no such user
     if (rows.length === 0) {
-      return res.render('admin.ejs', {
+      return res.render("admin.ejs", {
         loginError: "Invalid username or password"
       });
     }
 
     const user = rows[0];
 
-    // Compare password using bcrypt
+    // compare plain password from form with bcrypt hash from DB
     const isMatch = await bcrypt.compare(password, user.hashedPassword);
 
     if (!isMatch) {
-      return res.render('admin.ejs', {
+      return res.render("admin.ejs", {
         loginError: "Invalid username or password"
       });
     }
 
-    // Successful login → store session info
-    req.session.isUserAuthenticated = true;
+    // ✅ success: mark session as logged in
+    req.session.isAuthenticated = true;
     req.session.userId = user.userId;
     req.session.username = user.username;
     req.session.fullName = `${user.firstName} ${user.lastName}`;
 
-    
-
+    // send them to the dashboard
+    return res.redirect("/admin/dashboard");
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).send("Server error during login.");
   }
 });
+
 
 
 // show login page
@@ -294,12 +302,14 @@ app.get("/dbTest", async (req, res) => {
 
 
 function isUserAuthenticated(req, res, next){
- if (req.session.isUserAuthenticated) {
+  if (req.session.isAuthenticated) {
     next();
-   } else {
+  } else {
     res.redirect("/");
-   }
+  }
 }
+
+
 
 
 app.listen(3000, () => {

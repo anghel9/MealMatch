@@ -72,17 +72,21 @@
 
   <%- include('partials/foot.ejs') %>
 
-  <script>
-    const eyeIcon = document.querySelector("#eyeIcon");
-    const pwd = document.querySelector("#pwd");
+   <script>
+        document.querySelectorAll('.password-toggle').forEach(icon => {
+          const input = document.getElementById(icon.getAttribute(icon.dataset.target));
 
-    eyeIcon.addEventListener("click", () => {
-      const isHidden = pwd.type === "password";
-      pwd.type = isHidden ? "text" : "password";
+          icon.addEventListener('click', () => {
+            const hidden = input.type === 'password';
+            input.type = hidden ? 'text' : 'password';
 
-      eyeIcon.classList.toggle("bi-eye", !isHidden);
-      eyeIcon.classList.toggle("bi-eye-slash", isHidden);
-    });
-  </script>
+            icon.classList.toggle('bi-eye', !hidden);
+            icon.classList.toggle('bi-eye-slash', hidden);
+
+          })
+        })
+
+      </script>
+
 </body>
 </html>
