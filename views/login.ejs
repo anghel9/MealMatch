@@ -31,7 +31,7 @@
               <div class="password-wrapper">
                 <input type="password" class="form-control" id="password" name="password"
                   placeholder="Enter your password" required>
-                <span class="bi bi-eye password-toggle" data-target="password"></span>
+                <span class="bi bi-eye-slash password-toggle" data-target="password"></span>
               </div>
             </div>
 
@@ -62,19 +62,27 @@
 
       <script>
         document.querySelectorAll('.password-toggle').forEach(icon => {
-          const input = document.getElementById(icon.getAttribute(icon.dataset.target));
+          const input = document.getElementById(icon.dataset.target);
+          if (!input) return;
 
           icon.addEventListener('click', () => {
-            const hidden = input.type === 'password';
-            input.type = hidden ? 'text' : 'password';
+            const isHidden = input.type === 'password';
 
-            icon.classList.toggle('bi-eye', !hidden);
-            icon.classList.toggle('bi-eye-slash', hidden);
-
-          })
-        })
-
+            if (isHidden) {
+              // show password
+              input.type = 'text';
+              icon.classList.remove('bi-eye-slash');
+              icon.classList.add('bi-eye');
+            } else {
+              // hide password
+              input.type = 'password';
+              icon.classList.remove('bi-eye');
+              icon.classList.add('bi-eye-slash');
+            }
+          });
+        });
       </script>
+
 </body>
 
 </html>
