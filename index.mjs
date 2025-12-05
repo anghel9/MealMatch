@@ -46,12 +46,9 @@ function requireLogin(req, res, next) {
 
 //routes
 app.get('/', async (req, res) => {
-<<<<<<< HEAD
-  res.render('home.ejs');
-=======
    console.log(response.text);
    res.render('home.ejs')
->>>>>>> ab9e71288073533bb800453fdffef65f3af529a0
+
 });
 
 async function extractNutrition(recipeData) {
