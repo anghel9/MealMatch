@@ -7,7 +7,7 @@ import bcrypt from "bcrypt";
 
 const apiKey = process.env.API_KEY;
 const app = express();
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
@@ -59,25 +59,22 @@ async function extractNutrition(recipeData) {
       "calories": number,
       "protein": number,
       "fat": number,
-      "carbs": number,
-      "fiber": number,
-      "sugar": number,
-      "sodium": number
+      "carbs": number
    }
    `;
 
-   const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: prompt,
-   });
+   const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+   const result = await model.generateContent(prompt);
+   const response = result.response;
+   const text = response.text();
 
    // Parse the JSON response
-   const jsonText = response.text.replace(/```json\n?|\n?```/g, '').trim();
+   const jsonText = text.replace(/```json\n?|\n?```/g, '').trim();
    return JSON.parse(jsonText);
 }
 
 app.post("/tracker/add", requireLogin, async (req, res) => {
-   const { recipeId, recipeTitle, recipeData } = req.body;
+   const { recipeId, recipeData } = req.body;
    const userId = req.session.userId;
 
    try {
@@ -85,8 +82,8 @@ app.post("/tracker/add", requireLogin, async (req, res) => {
 
       // Insert into database
       await pool.query(
-         `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, fiber, sugar, sodium, date_logged) 
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+         `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, date_logged) 
+          VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
          [
             userId,
             recipeId,
