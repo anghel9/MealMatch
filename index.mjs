@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { GoogleGenAI } from "@google/genai";
 import express from "express";
 import mysql from "mysql2/promise";
 import session from "express-session";
@@ -6,6 +7,7 @@ import bcrypt from "bcrypt";
 
 const apiKey = process.env.API_KEY;
 const app = express();
+const ai = new GoogleGenAI({});
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
@@ -44,8 +46,40 @@ function requireLogin(req, res, next) {
 
 //routes
 app.get('/', async (req, res) => {
+<<<<<<< HEAD
   res.render('home.ejs');
+=======
+   console.log(response.text);
+   res.render('home.ejs')
+>>>>>>> ab9e71288073533bb800453fdffef65f3af529a0
 });
+
+async function extractNutrition(recipeData) {
+   const prompt = 
+   `Analyze this recipe and return ONLY a JSON object with nutritional information per serving.
+   Recipe: ${JSON.stringify(recipeData)}
+   
+   Return format (numbers only, no units):
+   {
+      "calories": number,
+      "protein": number,
+      "fat": number,
+      "carbs": number,
+      "fiber": number,
+      "sugar": number,
+      "sodium": number
+   }
+   `;
+
+   const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp",
+      contents: prompt,
+   });
+
+   // Parse the JSON response
+   const jsonText = response.text.replace(/```json\n?|\n?```/g, '').trim();
+   return JSON.parse(jsonText);
+}
 
 app.get('/recipes/random', async (req, res) => {
   try {
