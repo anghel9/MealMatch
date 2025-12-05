@@ -78,7 +78,11 @@
   position: relative;
 }
 
-.password-wrapper .password-toggle {
+.password-wrapper .form-control {
+  padding-right: 2.5rem;
+}
+
+.password-toggle {
   position: absolute;
   right: 12px;
   top: 50%;
@@ -87,3 +91,4 @@
   color: #6c757d;
   font-size: 1.1rem;
 }
+
