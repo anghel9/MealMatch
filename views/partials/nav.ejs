@@ -1,28 +1,59 @@
 <h1 class="text-center bg-success p-5 text-white m-0">MealMatch</h1>
+
 <nav class="navbar navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
   <div class="container-fluid">
+    
+    <!-- Mobile menu toggle -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarNavAltMarkup"
-            aria-controls="navbarNavAltMarkup" aria-expanded="false"
-            aria-label="Toggle navigation">
+            data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
+            aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
+
+    <!-- Main Nav -->
     <div class="collapse navbar-collapse justify-content-between" id="navbarNavAltMarkup">
+
       <div class="navbar-nav">
         <a class="nav-link" href="/">Home</a>
         <a class="nav-link" href="/recipes">Recipes</a>
         <a class="nav-link" href="/favorites">Favorites</a>
         <a class="nav-link" href="/tracker">Tracker</a>
       </div>
+
       <div class="text-end">
         <div class="d-flex flex-column align-items-end">
-          <a class="fw-bold text-success text-decoration-none" href="/create">Create Account</a>
 
-          <small class="text-white">Already registered? <a href="/login" class="text-success text-decoration-none">Login here</a></small>
-          <small class="text-white">Are You an Admin? <a href="/admin" class="text-success text-decoration-none">Admin Center</a></small>
+          <% if (!isAuthenticated) { %>
+            <a class="fw-bold text-success text-decoration-none" href="/create">
+              Create Account
+            </a>
+
+            <small class="text-white">
+              Already registered?
+              <a href="/login" class="text-success text-decoration-none">Login here</a>
+            </small>
+
+
+          <% } else { %>
+
+            <large class="text-white mb-1">
+              Welcome, <%= userName %>!
+            </large>
+
+            <a class="text-success text-decoration-none mb-2" href="/logout">
+              Logout
+            </a>
+
+            <% if (isAdmin) { %>
+              <a href="/admin/dashboard"
+                 class="text-success text-decoration-none mb-2">Admin Dashboard</a>
+            <% } %>
+
+          <% } %>
 
         </div>
       </div>
+
     </div>
   </div>
 </nav>
