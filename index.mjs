@@ -117,39 +117,6 @@ app.get("/tracker/data", requireLogin, async (req, res) => {
    }
 });
 
-
-//ADDING IN THE ADMIN PAGE
-app.get("/admin", (req, res) => {
-  if (req.session.isAuthenticated) {
-    return res.redirect("/admin/dashboard");
-  }
-  res.render("admin.ejs", { loginError: "" });
-});
-
-
-app.get("/admin/dashboard", (req, res) => {
-  if (!req.session.isAuthenticated) {
-    return res.redirect("/adminDashboard");
-  }
-  res.render("adminDashboard.ejs");
-});
-
-app.post("/adminProcess", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    const sql = `
-      SELECT userId, username, password AS hashedPassword, firstName, lastName
-      FROM users
-      WHERE username = ?
-      LIMIT 1;
-    `;
-    const [rows] = await pool.query(sql, [username]);
-
-    // no such user
-    if (rows.length === 0) {
-      return res.render("admin.ejs", {
-        loginError: "Invalid username or password"
 app.get('/recipes/random', async (req, res) => {
    try {
       const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
@@ -238,61 +205,6 @@ app.post("/login", async (req, res) => {
     }
 
     const user = rows[0];
-
-    // compare plain password from form with bcrypt hash from DB
-    const isMatch = await bcrypt.compare(password, user.hashedPassword);
-
-    if (!isMatch) {
-      return res.render("admin.ejs", {
-        loginError: "Invalid username or password"
-      });
-    }
-
-    req.session.isAuthenticated = true;
-    req.session.userId = user.userId;
-    req.session.username = user.username;
-    req.session.fullName = `${user.firstName} ${user.lastName}`;
-
-    // send them to the dashboard
-    return res.redirect("/admin/dashboard");
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).send("Server error during login.");
-  }
-});
-
-
-
-// show login page
-app.get("/login", async (req, res) => {
-   if (req.session.isAuthenticated) {
-      return res.redirect("/");
-   }
-   res.render("login.ejs", { title: "Login", loginError: "" });
-});
-app.post('/loginProcess', async (req, res) => {
-    let username = req.body.username;
-    let password = req.body.password;
-
-    let hashedPassword = "";
-    let sql = `SELECT *
-               FROM users
-              WHERE username = ?`;
-    const [rows] = await pool.query(sql, [username]); 
-
-    if (rows.length > 0) { //username exists in the table
-      hashedPassword = rows[0].password;
-    }
-
-    const match = await bcrypt.compare(password, hashedPassword);
-
-    if (match) {
-        req.session.isUserAuthenticated = true;
-        req.session.fullName = rows[0].firstName + " " + rows[0].lastName;
-        res.render('home.ejs')
-    } else {
-        res.render('login.ejs', {"loginError": "Wrong Credentials" })
-    }
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
@@ -420,19 +332,6 @@ app.get("/dbTest", async (req, res) => {
     res.status(500).send("Database error!");
   }
 });//dbTest
-
-
-
-function isUserAuthenticated(req, res, next){
-  if (req.session.isAuthenticated) {
-    next();
-  } else {
-    res.redirect("/");
-  }
-}
-
-
-
 
 app.listen(3000, () => {
   console.log("Express server running");
