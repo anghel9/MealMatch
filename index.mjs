@@ -46,7 +46,6 @@ function requireLogin(req, res, next) {
 
 //routes
 app.get('/', async (req, res) => {
-   console.log(response.text);
    res.render('home.ejs')
 
 });
