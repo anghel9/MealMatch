@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+</head>
+
+<body>
+    <%- include('partials/nav.ejs') %>
+
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">Admin Dashboard</h2>
+
+        <div class="card shadow-sm p-4">
+            <h4>Manage Users</h4>
+            <ul>
+                <li><a href="/admin/users">View All Users</a></li>
+                <li><a href="/admin/users/create">Create New User</a></li>
+            </ul>
+        </div>
+<!-- Features of the admin dashboard:
+
+        delete users 
+
+        view all people in the database  -->
+
+        <div class="card shadow-sm p-4 mt-4">
+            <h4>Manage Meals</h4>
+            <ul>
+                <li><a href="/admin/meals">View All Meals</a></li>
+                <li><a href="/admin/meals/create">Create New Meal</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <%- include('partials/foot.ejs') %>
+</body>
+</html>

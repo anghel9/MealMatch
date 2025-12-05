@@ -108,13 +108,61 @@ app.get('/recipes', async (req, res) => {
    }
 });
 
-//show Admin login page
+
+//ADDING IN THE ADMIN PAGE
 app.get("/admin", async (req, res) => {
    if (req.session.isAuthenticated) {
-      return res.redirect("/");
+      return res.redirect("/adminDashboard.ejs");
    }
    res.render("admin.ejs", { title: "Admin Login", loginError: "" });
 });
+
+app.post('/adminProcess', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Query the database for this username
+    const sql = `
+      SELECT userId, username, password AS hashedPassword, firstName, lastName
+      FROM users
+      WHERE username = ?
+      LIMIT 1;
+    `;
+    const [rows] = await pool.query(sql, [username]);
+
+    // If no user found
+    if (rows.length === 0) {
+      return res.render('admin.ejs', {
+        loginError: "Invalid username or password"
+      });
+    }
+
+    const user = rows[0];
+
+    // Compare password using bcrypt
+    const isMatch = await bcrypt.compare(password, user.hashedPassword);
+
+    if (!isMatch) {
+      return res.render('admin.ejs', {
+        loginError: "Invalid username or password"
+      });
+    }
+
+    // Successful login → store session info
+    req.session.isUserAuthenticated = true;
+    req.session.userId = user.userId;
+    req.session.username = user.username;
+    req.session.fullName = `${user.firstName} ${user.lastName}`;
+
+    
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).send("Server error during login.");
+  }
+});
+
+
 // show login page
 app.get("/login", async (req, res) => {
    if (req.session.isAuthenticated) {
@@ -122,51 +170,30 @@ app.get("/login", async (req, res) => {
    }
    res.render("login.ejs", { title: "Login", loginError: "" });
 });
+app.post('/loginProcess', async (req, res) => {
+    let username = req.body.username;
+    let password = req.body.password;
 
-//ADDING IN THE ADMIN PAGE
-app.get("/admin", async (req, res) => {
-   if (req.session.isAuthenticated) {
-      return res.redirect("/");
-   }
-   res.render("admin.ejs", { title: "Admin Login", loginError: "" });
-});
+    let hashedPassword = "";
+    let sql = `SELECT *
+               FROM users
+              WHERE username = ?`;
+    const [rows] = await pool.query(sql, [username]); 
 
-app.post("/login", async (req, res) => {
-   const { email, password } = req.body;
+    if (rows.length > 0) { //username exists in the table
+      hashedPassword = rows[0].password;
+    }
 
-   try {
-      // make sure that it is usersMM not users (since that is from lab7)
-      const [rows] = await pool.query(
-         "SELECT * FROM usersMM WHERE email = ?",
-         [email]
-      );
+    const match = await bcrypt.compare(password, hashedPassword);
 
-      if (!rows.length) {
-         return res.render("login.ejs", {
-            title: "Login",
-            loginError: "Invalid email or password.",
-         });
-      }
+    if (match) {
+        req.session.isUserAuthenticated = true;
+        req.session.fullName = rows[0].firstName + " " + rows[0].lastName;
+        res.render('home.ejs')
+    } else {
+        res.render('login.ejs', {"loginError": "Wrong Credentials" })
+    }
 
-      const user = rows[0];
-
-      const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-         return res.render("login.ejs", {
-            title: "Login",
-            loginError: "Invalid email or password.",
-         });
-      }
-
-      req.session.isAuthenticated = true;
-      req.session.userId = user.userID;
-      req.session.userName = user.username;
-
-      res.redirect("/");
-   } catch (err) {
-      console.error("Login error:", err);
-      res.status(500).send("Server error during login.");
-   }
 });
 
 app.get("/logout", (req, res) => {
@@ -263,6 +290,17 @@ app.get("/dbTest", async (req, res) => {
       res.status(500).send("Database error!");
    }
 });//dbTest
+
+
+
+function isUserAuthenticated(req, res, next){
+ if (req.session.isUserAuthenticated) {
+    next();
+   } else {
+    res.redirect("/");
+   }
+}
+
 
 app.listen(3000, () => {
    console.log("Express server running")
