@@ -129,13 +129,72 @@ app.get("/admin", (req, res) => {
   res.render("admin.ejs", { loginError: "" });
 });
 
+app.get("/admin/dashboard", requireAdmin, async (req, res) => {
+  try {
+    const [users] = await pool.query(
+      "SELECT userID, username, email, isAdmin FROM usersMM ORDER BY userID"
+    );
 
+    // We are NOT querying any meals table (since it doesn't exist).
+    // Just pass an empty array in case the EJS expects 'meals'.
+    const meals = [];
 
-
-app.get("/admin/dashboard", requireAdmin, (req, res) => {
-  res.render("adminDashboard.ejs");
+    res.render("adminDashboard.ejs", { users, meals });
+  } catch (err) {
+    console.error("Admin dashboard error:", err);
+    res.status(500).send("Error loading admin dashboard.");
+  }
 });
 
+app.post("/admin/users/create", async (req, res) => {
+  const { username, email, password, isAdmin } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).send("Username, email, and password are required.");
+  }
+
+  try {
+
+    const [existing] = await pool.query(
+      "SELECT userID FROM usersMM WHERE email = ? OR username = ?",
+      [email, username]
+    );
+
+    if (existing.length) {
+
+      return res.status(400).send("A user with that email or username already exists.");
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    const isAdminFlag = isAdmin ? 1 : 0;
+
+    await pool.query(
+      "INSERT INTO usersMM (username, email, password, isAdmin) VALUES (?, ?, ?, ?)",
+      [username, email, hash, isAdminFlag]
+    );
+
+    res.redirect("/admin/dashboard");
+  } catch (err) {
+    console.error("Admin create user error:", err);
+    res.status(500).send("Error creating user.");
+  }
+});
+
+app.post("/admin/users/:id/delete", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (Number(id) === req.session.userId) {
+      return res.status(400).send("You cannot delete your own account.");
+    }
+
+    await pool.query("DELETE FROM usersMM WHERE userID = ?", [id]);
+    res.redirect("/admin/dashboard");
+  } catch (err) {
+    console.error("Admin delete user error:", err);
+    res.status(500).send("Error deleting user.");
+  }
+});
 
 function requireAdmin(req, res, next) {
   if (req.session.isAuthenticated && req.session.isAdmin) {
@@ -143,7 +202,6 @@ function requireAdmin(req, res, next) {
   }
   return res.status(403).send("Access denied.");
 }
-
 
 
 // ----------------- RECIPES -----------------
