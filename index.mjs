@@ -54,8 +54,8 @@ app.get("/", async (req, res) => {
 // ----------------- GEMINI / TRACKER -----------------
 
 async function extractNutrition(recipeData) {
-   const prompt = 
-   `Analyze this recipe and return ONLY a JSON object with nutritional information per serving.
+  const prompt =
+    `Analyze this recipe and return ONLY a JSON object with nutritional information per serving.
    Recipe: ${JSON.stringify(recipeData)}
    
    Return format (numbers only, no units):
@@ -67,36 +67,36 @@ async function extractNutrition(recipeData) {
    }
    `;
 
-   const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-   const result = await model.generateContent(prompt);
-   const response = result.response;
-   const text = response.text();
+  const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const text = response.text();
 
-   // Parse the JSON response
-   const jsonText = text.replace(/```json\n?|\n?```/g, '').trim();
-   return JSON.parse(jsonText);
+  // Parse the JSON response
+  const jsonText = text.replace(/```json\n?|\n?```/g, '').trim();
+  return JSON.parse(jsonText);
 }
 
 app.post("/tracker/add", requireLogin, async (req, res) => {
-   const { recipeId, recipeData } = req.body;
-   const userId = req.session.userId;
+  const { recipeId, recipeData } = req.body;
+  const userId = req.session.userId;
 
   try {
     const nutrition = await extractNutrition(JSON.parse(recipeData));
 
-      // Insert into database
-      await pool.query(
-         `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, date_logged) 
+    // Insert into database
+    await pool.query(
+      `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, date_logged) 
           VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
-         [
-            userId,
-            recipeId,
-            nutrition.calories,
-            nutrition.protein,
-            nutrition.fat,
-            nutrition.carbs
-         ]
-      );
+      [
+        userId,
+        recipeId,
+        nutrition.calories,
+        nutrition.protein,
+        nutrition.fat,
+        nutrition.carbs
+      ]
+    );
 
     res.json({ success: true, nutrition });
   } catch (err) {
@@ -149,67 +149,80 @@ function requireAdmin(req, res, next) {
 // ----------------- RECIPES -----------------
 
 
-app.get('/recipes/random', async (req, res) => {
-   try {
-      const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
-      let response = await fetch(url);
-      let data = await response.json();
-      console.log("Spoonacular response:", data);
-      // Check if Spoonacular limit hit
-      if (data.code === 402 || data.status === 'failure') {
-         console.log("Spoonacular limit reached, using TheMealDB...");
-         const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/random.php`;
-         response = await fetch(fallbackUrl);
-         data = await response.json();
-         const meals = data.meals || [];
-         return res.render('recipesFallback.ejs', { meals });
-      }
+// ----------------- RECIPES -----------------
 
-      const meals = data.recipes || [];
-      
-      res.render('recipes.ejs', { meals });
-   } catch (err) {
-      console.error("API error:", err);
-      res.status(500).send("Error fetching recipes");
-   }
+app.get("/recipes/random", async (req, res) => {
+  try {
+    const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
+    let response = await fetch(url);
+    let data = await response.json();
+    console.log("Spoonacular response:", data);
+
+    // Check if Spoonacular limit hit
+    if (data.code === 402 || data.status === "failure") {
+      console.log("Spoonacular limit reached, using TheMealDB...");
+      const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/random.php`;
+      response = await fetch(fallbackUrl);
+      data = await response.json();
+      const meals = data.meals || [];
+      return res.render("recipesFallback.ejs", { meals, keyword: "" });
+    }
+
+
+    const meals = data.recipes || [];
+    res.render("recipes.ejs", { meals, keyword: "" });
+  } catch (err) {
+    console.error("API error:", err);
+    res.status(500).send("Error fetching recipes");
+  }
 });
+
 
 app.get("/recipes", async (req, res) => {
-  const keyword = req.query.keyword;
+  const keyword = (req.query.keyword || "").trim();
 
-   try {
-      const url = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(keyword)}&number=9`;
-      let response = await fetch(url);
-      let data = await response.json();
-      console.log("Spoonacular response:", data);
-      //Check if Spoonacular limit hit
-      if (data.code === 402 || data.status === 'failure') {
-         console.log("Spoonacular limit reached, using TheMealDB...");
-         const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
-         response = await fetch(fallbackUrl);
-         data = await response.json();
-         const meals = data.meals || [];
-         return res.render('recipesFallback.ejs', { meals });
-      }
+  // If there is no keyword, just show the page with no results
+  if (!keyword) {
+    return res.render("recipes.ejs", { meals: [], keyword: "" });
+  }
 
-      if (!Array.isArray(data)) {
-         return res.render('recipes.ejs', { meals: [] });
-      }
+  try {
+    const url = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(
+      keyword
+    )}&number=9`;
+    let response = await fetch(url);
+    let data = await response.json();
+    console.log("Spoonacular response:", data);
 
-      const meals = await Promise.all(
-         data.map(async (recipe) => {
-         const detailUrl = `https://api.spoonacular.com/recipes/${recipe.id}/information?apiKey=${apiKey}`;
-         const detailResponse = await fetch(detailUrl);
-         return await detailResponse.json();
-         })
-      );
-      
-      res.render('recipes.ejs', { meals });
-   } catch (err) {
-      console.error("API error:", err);
-      res.status(500).send("Error fetching recipes");
-   }
+    // Check if Spoonacular limit hit
+    if (data.code === 402 || data.status === "failure") {
+      console.log("Spoonacular limit reached, using TheMealDB...");
+      const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
+      response = await fetch(fallbackUrl);
+      data = await response.json();
+      const meals = data.meals || [];
+      return res.render("recipesFallback.ejs", { meals, keyword });
+    }
+
+    if (!Array.isArray(data)) {
+      return res.render("recipes.ejs", { meals: [], keyword });
+    }
+
+    const meals = await Promise.all(
+      data.map(async (recipe) => {
+        const detailUrl = `https://api.spoonacular.com/recipes/${recipe.id}/information?apiKey=${apiKey}`;
+        const detailResponse = await fetch(detailUrl);
+        return await detailResponse.json();
+      })
+    );
+
+    res.render("recipes.ejs", { meals, keyword });
+  } catch (err) {
+    console.error("API error:", err);
+    res.status(500).send("Error fetching recipes");
+  }
 });
+
 
 // ----------------- USER AUTH (usersMM table, email login) -----------------
 
@@ -247,10 +260,10 @@ app.post("/login", async (req, res) => {
       });
     }
 
-  req.session.isAuthenticated = true;
-req.session.userId = user.userID;
-req.session.userName = user.username;
-req.session.isAdmin = user.isAdmin === 1 || user.isAdmin === "1";
+    req.session.isAuthenticated = true;
+    req.session.userId = user.userID;
+    req.session.userName = user.username;
+    req.session.isAdmin = user.isAdmin === 1 || user.isAdmin === "1";
 
 
     res.redirect("/");

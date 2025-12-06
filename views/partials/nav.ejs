@@ -1,58 +1,54 @@
-<h1 class="text-center bg-success p-5 text-white m-0">MealMatch</h1>
+<nav class="navbar navbar-expand-lg navbar-dark mm-navbar mb-3">
+  <div class="container">
+    <a class="navbar-brand fw-semibold" href="/">MealMatch</a>
 
-<nav class="navbar navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
-  <div class="container-fluid">
-    
-    <!-- Mobile menu toggle -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup"
-            aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <!-- Main Nav -->
-    <div class="collapse navbar-collapse justify-content-between" id="navbarNavAltMarkup">
+    <div id="mainNav" class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/recipes/random">Random Meal</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/recipes">Search Recipes</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/tracker">Tracker</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/favorites">Favorites</a>
+        </li>
+      </ul>
 
-      <div class="navbar-nav">
-        <a class="nav-link" href="/">Home</a>
-        <a class="nav-link" href="/recipes">Recipes</a>
-        <a class="nav-link" href="/favorites">Favorites</a>
-        <a class="nav-link" href="/tracker">Tracker</a>
-      </div>
+      <ul class="navbar-nav ms-auto">
+        <% if (isAuthenticated) { %>
+          <li class="nav-item">
+            <span class="nav-link disabled">
+              Hi, <%= userName || 'User' %>
+            </span>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-sm btn-outline-light ms-2" href="/logout">Logout</a>
+          </li>
+        <% } else { %>
+          
+          <li class="nav-item d-none d-lg-block me-3">
+            <span class="navbar-text text-light small">
+              Already have an account?
+              <a href="/login" class="text-decoration-underline text-light">Login here</a>.
+            </span>
+          </li>
 
-      <div class="text-end">
-        <div class="d-flex flex-column align-items-end">
-          <% if (!isAuthenticated) { %>
-            <a class="fw-bold text-success text-decoration-none" href="/create">
-              Create Account
-            </a>
-
-            <small class="text-white">
-              Already registered?
-              <a href="/login" class="text-success text-decoration-none">Login here</a>
-            </small>
-
-
-          <% } else { %>
-
-            <large class="text-white mb-1">
-              Welcome, <%= userName %>!
-            </large>
-
-            <a class="text-success text-decoration-none mb-2" href="/logout">
-              Logout
-            </a>
-
-            <% if (isAdmin) { %>
-              <a href="/admin/dashboard"
-                 class="text-success text-decoration-none mb-2">Admin Dashboard</a>
-            <% } %>
-
-          <% } %>
-
-        </div>
-      </div>
-
+          <li class="nav-item">
+            <a class="btn btn-sm btn-outline-light me-2" href="/login">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-sm btn-mm-primary" href="/create">Sign up</a>
+          </li>
+        <% } %>
+      </ul>
     </div>
   </div>
 </nav>

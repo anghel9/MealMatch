@@ -1,94 +1,246 @@
-.two-column {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 28px;
-    max-width: 1200px;
-    margin: 35px auto;
-    justify-self: center;
+/* ---------- Global ---------- */
+
+body {
+  background: #f6f7fb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #27313a;
 }
 
-.meal-card {
-    background: rgb(253, 246, 236);
-    border: 1px solid lightgray;
-    border-radius: 14px;
-    padding: 18px 20px 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: 360px;
-    justify-self: center;
+a {
+  color: #ff8a3d;
 }
 
-.meal-card img {
-    width: 100%;
-    height: 190px;
-    object-fit: cover;
-    border-radius: 10px;
-    display: block;
+a:hover {
+  color: #e6762e;
 }
 
-.meal-card h3 {
-    font-size: 1.2rem;
+/* ---------- Navbar ---------- */
+
+.mm-navbar {
+  background: linear-gradient(90deg, #27313a, #304055);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
-.meal-card ul {
-    list-style: disc;
-    padding-left: 2rem;
-    font-size: .9rem;
-    line-height: 1.55;
-    max-height: 170px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-}
-.meal-card #instructions{  
-    font-size: .8rem;
-    line-height: 1.55;
-    max-height: 170px;
-    overflow-y: auto;
-    overflow-x: hidden; 
-    word-wrap: break-word;
-    scrollbar-width: thin;
-    padding-left: 0;
+.mm-navbar .navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
-.meal-card #instructions ol,
-.meal-card #instructions ul {
-    padding-left: 1.5rem;
-    margin: 0;
+.mm-navbar .nav-link {
+  color: #f4f6fb;
+  font-size: 0.92rem;
 }
 
-.meal-card #instructions li {
-    margin-bottom: 0.5rem;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+.mm-navbar .nav-link:hover {
+  color: #ffffff;
 }
 
-#YtBtn:hover {
-    background: #147646;
+.mm-navbar .btn-mm-primary {
+  padding: 0.35rem 0.9rem;
 }
 
-#YtBtn a {
-    color: #fff;
-    text-decoration: none;
-    display: inline-block;
+/* ---------- Buttons ---------- */
+
+.btn-mm-primary {
+  background: #ff8a3d;
+  border-color: #ff8a3d;
+  color: #fff;
 }
+
+.btn-mm-primary:hover {
+  background: #e6762e;
+  border-color: #e6762e;
+  color: #fff;
+}
+
+.btn-mm-secondary {
+  background: #ffffff;
+  border: 1px solid #d0d5e4;
+  color: #27313a;
+}
+
+.btn-mm-secondary:hover {
+  background: #f1f3fb;
+  border-color: #c0c5d4;
+  color: #27313a;
+}
+
+/* ---------- Hero ---------- */
+
+.mm-hero {
+  padding: 3.5rem 0 3rem;
+  background: radial-gradient(circle at top left, #ffe4cf 0, #f6f7fb 55%, #eef3ff 100%);
+}
+
+.mm-hero-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2.4fr);
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .mm-hero-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mm-hero-title {
+  font-size: clamp(2.1rem, 3vw, 2.6rem);
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.mm-hero-subtitle {
+  font-size: 0.98rem;
+  color: #6c757d;
+  max-width: 34rem;
+}
+
+.mm-hero-actions {
+  margin-top: 1.25rem;
+}
+
+.mm-hero-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(18, 35, 52, 0.18);
+  border: 1px solid #e1e5f2;
+}
+
+.mm-hero-footnote {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* ---------- Macro chips ---------- */
+
+.mm-macro-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.mm-macro-chip {
+  flex: 1;
+  background: #f6f8ff;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mm-macro-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8a94b0;
+}
+
+.mm-macro-value {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* ---------- Sections & cards ---------- */
+
+.mm-section {
+  padding: 2.5rem 0 3rem;
+}
+
+.mm-section-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.mm-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 6px 18px rgba(15, 35, 52, 0.08);
+  border: 1px solid #e1e5f2;
+}
+
+.mm-card h5 {
+  margin-bottom: 0.4rem;
+}
+
+/* ---------- Recipe grid ---------- */
+
+.mm-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.mm-recipe-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.mm-recipe-image-wrap {
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 0.7rem;
+}
+
+.mm-recipe-card img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  display: block;
+}
+
+.mm-recipe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+.mm-pill {
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  background: #f1f4ff;
+  color: #46506a;
+}
+
+/* ---------- Favorites ---------- */
+
+.list-group-item.d-flex.align-items-center {
+  border: none;
+  border-bottom: 1px solid #e3e6f0;
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+/* ---------- Tracker ---------- */
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: #f8f9ff;
+}
+
+.table thead th {
+  background-color: #eef1ff;
+  border-bottom: 1px solid #d6d9ec;
+}
+
+/* ---------- Auth forms ---------- */
 
 .password-wrapper {
   position: relative;
 }
 
-.password-wrapper .form-control {
-  padding-right: 2.5rem;
-}
-
-.password-toggle {
+.password-wrapper .password-toggle {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
   color: #6c757d;
-  font-size: 1.1rem;
 }
-
