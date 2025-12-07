@@ -1,42 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-      <%- include('partials/head.ejs') %>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-<link href="/css/styles.css" rel="stylesheet">
-    <title>Admin Dashboard</title>
+  <%- include('partials/head.ejs') %>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <!-- Match other pages like login/create -->
+  <link href="/public/css/styles.css" rel="stylesheet">
+  <title>Admin Dashboard | MealMatch</title>
 </head>
 
 <body>
-    <%- include('partials/nav.ejs') %>
+  <%- include('partials/nav.ejs') %>
 
-    <div class="container mt-5">
-        <h2 class="text-center mb-4">Admin Dashboard</h2>
+  <div class="container mt-5" style="max-width: 1200px;">
+    <h2 class="text-center mb-4">MealMatch Admin Dashboard</h2>
 
-        <div class="card shadow-sm p-4">
-            <h4>Manage Users</h4>
-            <ul>
-                <li><a href="/admin/users">View All Users</a></li>
-                <li><a href="/admin/users/create">Create New User</a></li>
-            </ul>
+    <!-- Quick info -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="card shadow-sm p-3 h-100">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-people-fill fs-1 me-3"></i>
+            <div>
+              <h5 class="mb-0">Total Users</h5>
+              <p class="fs-4 mb-0">
+                <%= (users && users.length) ? users.length : 0 %>
+              </p>
+            </div>
+          </div>
         </div>
-<!-- Features of the admin dashboard:
+      </div>
 
-        delete users 
-
-        view all people in the database  -->
-
-        <div class="card shadow-sm p-4 mt-4">
-            <h4>Manage Meals</h4>
-            <ul>
-                <li><a href="/admin/meals">View All Meals</a></li>
-                <li><a href="/admin/meals/create">Create New Meal</a></li>
-            </ul>
+      <!-- Placeholder card if you want to add something later (tracker stats, etc.) -->
+      <div class="col-md-6">
+        <div class="card shadow-sm p-3 h-100">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-graph-up-arrow fs-1 me-3"></i>
+            <div>
+              <h5 class="mb-0">Admin Tools</h5>
+              <p class="mb-0 text-muted" style="font-size: 0.9rem;">
+                Manage users from one place. More tools can be added here later.
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
 
-    <%- include('partials/foot.ejs') %>
+    <!-- USERS MANAGEMENT -->
+    <div class="row g-4">
+      <!-- Create user form -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm p-3">
+          <h4 class="h5 mb-3">Create New User</h4>
+          <form method="post" action="/admin/users/create">
+            <div class="mb-3 text-start">
+              <label for="username" class="form-label">Username</label>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                name="username"
+                placeholder="Choose a username"
+                required
+              >
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="userEmail" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="userEmail"
+                name="email"
+                placeholder="Enter email"
+                required
+              >
+            </div>
+
+            <div class="mb-3 text-start">
+              <label for="userPassword" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="userPassword"
+                name="password"
+                placeholder="Set password"
+                required
+              >
+            </div>
+
+            <div class="mb-3 form-check text-start">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="isAdmin"
+                name="isAdmin"
+                value="1"
+              >
+              <label class="form-check-label" for="isAdmin">Admin User</label>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">
+              <i class="bi bi-person-plus-fill me-1"></i> Create User
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Users table -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="h5 mb-0">All Users</h4>
+            <small class="text-muted">View and delete users</small>
+          </div>
+
+          <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+            <table class="table table-striped table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Username</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Admin</th>
+                  <th scope="col" class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (users && users.length) { %>
+                  <% users.forEach(user => { %>
+                    <tr>
+                      <td><%= user.userID %></td>
+                      <td><%= user.username %></td>
+                      <td><%= user.email %></td>
+                      <td>
+                        <% if (user.isAdmin) { %>
+                          <span class="badge bg-success">Yes</span>
+                        <% } else { %>
+                          <span class="badge bg-secondary">No</span>
+                        <% } %>
+                      </td>
+                      <td class="text-end">
+                        <form
+                          method="post"
+                          action="/admin/users/<%= user.userID %>/delete"
+                          class="d-inline"
+                          onsubmit="return confirm('Delete this user?');"
+                        >
+                          <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">
+                      No users found.
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div> <!-- /row -->
+  </div> <!-- /container -->
+
+  <%- include('partials/foot.ejs') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
+    crossorigin="anonymous"></script>
 </body>
 </html>
