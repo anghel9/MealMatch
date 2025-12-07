@@ -1,54 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <%- include('partials/head.ejs') %>
-  <title>Home</title>
+  <title>MealMatch</title>
 </head>
-
 <body>
   <%- include('partials/nav.ejs') %>
 
-  <div class="container text-center mt-5">
-    <h2 class="mb-4">Find Meals That Match Your Ingredients</h2>
-    <p class="text-muted mb-4">Enter an ingredient to discover recipes that fit your diet and goals.</p>
-
-    <form action="/recipes" method="get" class="mx-auto" style="max-width: 500px;">
-      <div class="input-group mb-3">
-        <input type="text" name="keyword" class="form-control" placeholder="e.g., chicken, tomato, rice" required>
-        <button class="btn btn-success" type="submit">Find Recipes</button>
-      </div>
-    </form>
-
-    <div class="mt-3">
-      <a href="/recipes/random" class="btn btn-outline-success">Random Meal</a>
-    </div>
-
-    <hr class="my-5">
-
-    <div class="row g-4">
-      <div class="col-md-4">
-        <div class="card p-3 shadow-sm h-100">
-          <h5 class="mb-2 text-success">Track Macros</h5>
-          <p class="text-muted">Log your daily meals and see calorie totals at a glance.</p>
+  <main>
+    <section class="mm-hero">
+      <div class="container mm-hero-inner">
+        <div class="mm-hero-text">
+          <h1 class="mm-hero-title">Match your meals to your goals.</h1>
+          <p class="mm-hero-subtitle">
+            Search recipes by ingredients, track your macros, and save your favorite meals
+            – all in one place.
+          </p>
+          <div class="mm-hero-actions">
+            <a href="/create" class="btn btn-mm-primary me-2">Get started</a>
+            <a href="/recipes" class="btn btn-mm-secondary">Browse recipes</a>
+          </div>
+        </div>
+        <div class="mm-hero-card">
+          <h5 class="mb-3">Today’s snapshot</h5>
+          <div class="mm-macro-row">
+            <div class="mm-macro-chip">
+              <span class="mm-macro-label">Calories</span>
+              <span class="mm-macro-value">1870</span>
+            </div>
+            <div class="mm-macro-chip">
+              <span class="mm-macro-label">Protein</span>
+              <span class="mm-macro-value">122 g</span>
+            </div>
+          </div>
+          <div class="mm-macro-row">
+            <div class="mm-macro-chip">
+              <span class="mm-macro-label">Carbs</span>
+              <span class="mm-macro-value">210 g</span>
+            </div>
+            <div class="mm-macro-chip">
+              <span class="mm-macro-label">Fat</span>
+              <span class="mm-macro-value">62 g</span>
+            </div>
+          </div>
+          <p class="mm-hero-footnote mt-3 mb-0">
+            Sign in to see your actual data.
+          </p>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card p-3 shadow-sm h-100">
-          <h5 class="mb-2 text-success">Save Favorites</h5>
-          <p class="text-muted">Bookmark recipes you love for quick access later.</p>
+    </section>
+
+    <section class="mm-section">
+      <div class="container">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="mm-card">
+              <h5>Search by ingredient</h5>
+              <p>Type what you have in your fridge and we’ll suggest complete meals.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="mm-card">
+              <h5>Track macros</h5>
+              <p>Log meals and see calories, protein, carbs, and fats at a glance.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="mm-card">
+              <h5>Save favorites</h5>
+              <p>Bookmark meals you love so they’re just a tap away next time.</p>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card p-3 shadow-sm h-100">
-          <h5 class="mb-2 text-success">Discover Recipes</h5>
-          <p class="text-muted">Search by ingredient or get random ideas instantly.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <%- include('partials/foot.ejs') %>
 </body>
-
 </html>

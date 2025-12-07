@@ -1,42 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <%- include("partials/head.ejs")%>
+  <%- include('partials/head.ejs') %>
+  <title>Search Recipes</title>
 </head>
 <body>
-    <%- include("partials/nav.ejs") %>
-    
+  <%- include('partials/nav.ejs') %>
 
-    <div class="two-column">
-        <% for (let meal of meals) { %>
-            <div class="meal-card">
-                <img src="<%= meal.image %>">
-                <h3><%= meal.title %></h3>
-                <strong style="font-size:.85rem;color:#555;">Top ingredients</strong>
-                <ul>
-                    <% if (meal.extendedIngredients && meal.extendedIngredients.length > 0) { %>
-                        <% for (let ingredient of meal.extendedIngredients) { %>
-                            <li>
-                                <%= ingredient.amount %> 
-                                <%= ingredient.unit %> 
-                                of <%= ingredient.name %>
-                            </li>
-                        <% } %>
-                    <% } else { %>
-                        <li>No ingredients available</li>
-                    <% } %>
-                </ul>
-                
-                <% if (meal.instructions) { %>
-                    <strong style="font-size:.85rem;color:#555;">Instructions</strong>
-                    <p style="font-size:.8rem;color:#555;">Ready in <%=meal.readyInMinutes%> minutes </p>
-                    <div id="instructions"><%-meal.instructions%></div>
-                <% } %>
-            </div>
-        <% } %>
+  <main class="container py-4">
+
+    <!-- Page title -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="m-0">Search Recipes</h2>
     </div>
-    <footer>
-        <%- include("partials/foot.ejs")%>
-    </footer>
+
+    <!-- Search form -->
+    <form class="row g-2 mb-4" method="GET" action="/recipes">
+      <div class="col-md-8">
+        <input
+          type="text"
+          name="keyword"
+          class="form-control"
+          placeholder="Search by ingredients (e.g. chicken, rice)"
+          value="<%= keyword || '' %>"
+          required
+        >
+      </div>
+      <div class="col-md-4 d-grid d-md-block">
+        <button type="submit" class="btn btn-success">
+          Search
+        </button>
+      </div>
+    </form>
+
+    <% if (!keyword) { %>
+      <!-- First visit: no keyword yet -->
+      <p class="text-muted">
+        Start by typing one or more ingredients above and click <strong>Search</strong>.
+      </p>
+    <% } else if (!meals || !meals.length) { %>
+      <!-- Searched but got no results -->
+      <div class="alert alert-warning">
+        No recipes found for "<strong><%= keyword %></strong>".  
+        Try different ingredients or fewer filters.
+      </div>
+    <% } else { %>
+      <!-- Results grid -->
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        <% meals.forEach(meal => { %>
+          <div class="col">
+            <div class="card h-100 shadow-sm">
+              <% if (meal.image) { %>
+                <img src="<%= meal.image %>" class="card-img-top" alt="<%= meal.title %>">
+              <% } %>
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title"><%= meal.title %></h5>
+
+                <% if (meal.readyInMinutes) { %>
+                  <p class="card-text text-muted mb-1">
+                    Ready in <%= meal.readyInMinutes %> min
+                  </p>
+                <% } %>
+
+                <% if (meal.servings) { %>
+                  <p class="card-text text-muted mb-2">
+                    Servings: <%= meal.servings %>
+                  </p>
+                <% } %>
+
+                <div class="mt-auto">
+                  <% if (meal.sourceUrl) { %>
+                    <a href="<%= meal.sourceUrl %>" target="_blank" rel="noopener"
+                       class="btn btn-outline-success btn-sm">
+                      View Recipe
+                    </a>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+  </main>
+
+  <%- include('partials/foot.ejs') %>
 </body>
 </html>
