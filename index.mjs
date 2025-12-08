@@ -90,25 +90,9 @@ app.get("/admin", (req, res) => {
   res.render("admin.ejs", { loginError: "" });
 });
 
-
-
-
 app.get("/admin/dashboard", requireAdmin, (req, res) => {
   res.render("adminDashboard.ejs");
 });
-
-
-function requireAdmin(req, res, next) {
-  if (req.session.isAuthenticated && req.session.isAdmin) {
-    return next();
-  }
-  return res.status(403).send("Access denied.");
-}
-
-
-
-// ----------------- RECIPES -----------------
-
 
 // ----------------- RECIPES -----------------
 
