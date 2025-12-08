@@ -56,10 +56,10 @@ function requireAdmin(req, res, next) {
 async function upsertFoodRecipe(recipeId, title) {
   const id = Number(recipeId);
 
-  // Minimal placeholder data for now; your team can improve these later
+  
   const ingredients  = "Imported from API";
   const instructions = "See external recipe link for details.";
-  const isFavorite   = 1; // mark as favorite in your base table
+  const isFavorite   = 1; // mark as favorite in the db
 
   await pool.query(
     `INSERT INTO foodRecipes (recipeID, title, ingredients, instructions, isFavorite)
