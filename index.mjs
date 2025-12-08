@@ -1,13 +1,15 @@
 import "dotenv/config";
-import { GoogleGenAI } from "@google/genai";
 import express from "express";
 import mysql from "mysql2/promise";
 import session from "express-session";
 import bcrypt from "bcrypt";
+// Gemini import left out for now since tracker teammate can add it later
+// import { GoogleGenAI } from "@google/genai";
 
 const apiKey = process.env.API_KEY;
 const app = express();
-const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
+
+// const ai = new GoogleGenAI(process.env.GEMINI_API_KEY); // unused for now
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
@@ -39,11 +41,38 @@ app.use((req, res, next) => {
   next();
 });
 
-// middleware
 function requireLogin(req, res, next) {
   if (req.session.isAuthenticated) return next();
   return res.redirect("/login");
 }
+
+function requireAdmin(req, res, next) {
+  if (req.session.isAuthenticated && req.session.isAdmin) {
+    return next();
+  }
+  return res.status(403).send("Access denied.");
+}
+
+async function upsertFoodRecipe(recipeId, title) {
+  const id = Number(recipeId);
+
+  // Minimal placeholder data for now; your team can improve these later
+  const ingredients  = "Imported from API";
+  const instructions = "See external recipe link for details.";
+  const isFavorite   = 1; // mark as favorite in your base table
+
+  await pool.query(
+    `INSERT INTO foodRecipes (recipeID, title, ingredients, instructions, isFavorite)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       title        = VALUES(title),
+       ingredients  = VALUES(ingredients),
+       instructions = VALUES(instructions),
+       isFavorite   = VALUES(isFavorite)`,
+    [id, title, ingredients, instructions, isFavorite]
+  );
+}
+
 
 // ----------------- BASIC ROUTES -----------------
 
@@ -51,76 +80,8 @@ app.get("/", async (req, res) => {
   res.render("home.ejs");
 });
 
-// ----------------- GEMINI / TRACKER -----------------
-
-async function extractNutrition(recipeData) {
-  const prompt =
-    `Analyze this recipe and return ONLY a JSON object with nutritional information per serving.
-   Recipe: ${JSON.stringify(recipeData)}
-   
-   Return format (numbers only, no units):
-   {
-      "calories": number,
-      "protein": number,
-      "fat": number,
-      "carbs": number
-   }
-   `;
-
-  const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-  const result = await model.generateContent(prompt);
-  const response = result.response;
-  const text = response.text();
-
-  // Parse the JSON response
-  const jsonText = text.replace(/```json\n?|\n?```/g, '').trim();
-  return JSON.parse(jsonText);
-}
-
-app.post("/tracker/add", requireLogin, async (req, res) => {
-  const { recipeId, recipeData } = req.body;
-  const userId = req.session.userId;
-
-  try {
-    const nutrition = await extractNutrition(JSON.parse(recipeData));
-
-    // Insert into database
-    await pool.query(
-      `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, date_logged) 
-          VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
-      [
-        userId,
-        recipeId,
-        nutrition.calories,
-        nutrition.protein,
-        nutrition.fat,
-        nutrition.carbs
-      ]
-    );
-
-    res.json({ success: true, nutrition });
-  } catch (err) {
-    console.error("Tracker error:", err);
-    res.status(500).json({ error: "Failed to add to tracker" });
-  }
-});
-
-app.get("/tracker/data", requireLogin, async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      "SELECT * FROM tracker WHERE userID = ? ORDER BY date_logged DESC",
-      [req.session.userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Tracker fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch tracker data" });
-  }
-});
-
 // ----------------- ADMIN ROUTES -----------------
 
-// Show admin login
 app.get("/admin", (req, res) => {
   if (req.session.isAuthenticated && req.session.isAdmin) {
     return res.redirect("/admin/dashboard");
@@ -129,72 +90,13 @@ app.get("/admin", (req, res) => {
   res.render("admin.ejs", { loginError: "" });
 });
 
-app.get("/admin/dashboard", requireAdmin, async (req, res) => {
-  try {
-    const [users] = await pool.query(
-      "SELECT userID, username, email, isAdmin FROM usersMM ORDER BY userID"
-    );
 
-    // We are NOT querying any meals table (since it doesn't exist).
-    // Just pass an empty array in case the EJS expects 'meals'.
-    const meals = [];
 
-    res.render("adminDashboard.ejs", { users, meals });
-  } catch (err) {
-    console.error("Admin dashboard error:", err);
-    res.status(500).send("Error loading admin dashboard.");
-  }
+
+app.get("/admin/dashboard", requireAdmin, (req, res) => {
+  res.render("adminDashboard.ejs");
 });
 
-app.post("/admin/users/create", async (req, res) => {
-  const { username, email, password, isAdmin } = req.body;
-
-  if (!username || !email || !password) {
-    return res.status(400).send("Username, email, and password are required.");
-  }
-
-  try {
-
-    const [existing] = await pool.query(
-      "SELECT userID FROM usersMM WHERE email = ? OR username = ?",
-      [email, username]
-    );
-
-    if (existing.length) {
-
-      return res.status(400).send("A user with that email or username already exists.");
-    }
-
-    const hash = await bcrypt.hash(password, 10);
-    const isAdminFlag = isAdmin ? 1 : 0;
-
-    await pool.query(
-      "INSERT INTO usersMM (username, email, password, isAdmin) VALUES (?, ?, ?, ?)",
-      [username, email, hash, isAdminFlag]
-    );
-
-    res.redirect("/admin/dashboard");
-  } catch (err) {
-    console.error("Admin create user error:", err);
-    res.status(500).send("Error creating user.");
-  }
-});
-
-app.post("/admin/users/:id/delete", requireAdmin, async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    if (Number(id) === req.session.userId) {
-      return res.status(400).send("You cannot delete your own account.");
-    }
-
-    await pool.query("DELETE FROM usersMM WHERE userID = ?", [id]);
-    res.redirect("/admin/dashboard");
-  } catch (err) {
-    console.error("Admin delete user error:", err);
-    res.status(500).send("Error deleting user.");
-  }
-});
 
 function requireAdmin(req, res, next) {
   if (req.session.isAuthenticated && req.session.isAdmin) {
@@ -202,6 +104,7 @@ function requireAdmin(req, res, next) {
   }
   return res.status(403).send("Access denied.");
 }
+
 
 
 // ----------------- RECIPES -----------------
@@ -216,7 +119,6 @@ app.get("/recipes/random", async (req, res) => {
     let data = await response.json();
     console.log("Spoonacular response:", data);
 
-    // Check if Spoonacular limit hit
     if (data.code === 402 || data.status === "failure") {
       console.log("Spoonacular limit reached, using TheMealDB...");
       const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/random.php`;
@@ -226,7 +128,6 @@ app.get("/recipes/random", async (req, res) => {
       return res.render("recipesFallback.ejs", { meals, keyword: "" });
     }
 
-
     const meals = data.recipes || [];
     res.render("recipes.ejs", { meals, keyword: "" });
   } catch (err) {
@@ -235,11 +136,9 @@ app.get("/recipes/random", async (req, res) => {
   }
 });
 
-
 app.get("/recipes", async (req, res) => {
   const keyword = (req.query.keyword || "").trim();
 
-  // If there is no keyword, just show the page with no results
   if (!keyword) {
     return res.render("recipes.ejs", { meals: [], keyword: "" });
   }
@@ -252,10 +151,11 @@ app.get("/recipes", async (req, res) => {
     let data = await response.json();
     console.log("Spoonacular response:", data);
 
-    // Check if Spoonacular limit hit
     if (data.code === 402 || data.status === "failure") {
       console.log("Spoonacular limit reached, using TheMealDB...");
-      const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`;
+      const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(
+        keyword
+      )}`;
       response = await fetch(fallbackUrl);
       data = await response.json();
       const meals = data.meals || [];
@@ -281,10 +181,8 @@ app.get("/recipes", async (req, res) => {
   }
 });
 
+// ----------------- USER AUTH -----------------
 
-// ----------------- USER AUTH (usersMM table, email login) -----------------
-
-// show login page
 app.get("/login", async (req, res) => {
   if (req.session.isAuthenticated) {
     return res.redirect("/");
@@ -323,7 +221,6 @@ app.post("/login", async (req, res) => {
     req.session.userName = user.username;
     req.session.isAdmin = user.isAdmin === 1 || user.isAdmin === "1";
 
-
     res.redirect("/");
   } catch (err) {
     console.error("Login error:", err);
@@ -336,8 +233,6 @@ app.get("/logout", (req, res) => {
     res.redirect("/");
   });
 });
-
-// ----------------- REGISTRATION (usersMM) -----------------
 
 app.get("/create", async (req, res) => {
   if (req.session.isAuthenticated) {
@@ -383,30 +278,191 @@ app.post("/create", async (req, res) => {
   }
 });
 
-// ----------------- FAVORITES / TRACKER PAGES (views) -----------------
+// ----------------- FAVORITES -----------------
 
 app.get("/favorites", async (req, res) => {
+  const sort = req.query.sort || "name";
+
   if (!req.session.isAuthenticated) {
-    // Guest: let EJS show sample favorites
-    return res.render("favorites.ejs", { favorites: null });
+    return res.render("favorites.ejs", { favorites: null, sort });
   }
 
-  // Logged in: TODO load real favorites from DB.
-  const favorites = [];
-  res.render("favorites.ejs", { favorites });
+  try {
+    const userId = req.session.userId;
+
+    let orderBy = "title";
+    if (sort === "calories") orderBy = "calories";
+    else if (sort === "protein") orderBy = "protein";
+
+    const [rows] = await pool.query(
+      `SELECT recipeID, title, imageUrl, calories, protein
+         FROM userFavorites
+        WHERE userID = ?
+        ORDER BY ${orderBy} ASC, title ASC`,
+      [userId]
+    );
+
+    res.render("favorites.ejs", { favorites: rows, sort });
+  } catch (err) {
+    console.error("Favorites view error:", err);
+    res.status(500).send("Failed to load favorites");
+  }
 });
+
+app.post("/favorites/add", requireLogin, async (req, res) => {
+  const { recipeId, title, imageUrl, calories, protein } = req.body;
+  const userId = req.session.userId;
+
+  try {
+    const cal  = calories ? Number(calories) : null;
+    const prot = protein  ? Number(protein)  : null;
+
+    // insert an ignore since we do not want users to add dupe favorites
+    await pool.query(
+      `INSERT IGNORE INTO foodRecipes
+         (recipeID, title, ingredients, instructions, isFavorite)
+       VALUES (?, ?, ?, ?, 1)`,
+      [
+        recipeId,
+        title,
+        "Imported from external API",   // placeholder ingredients
+        "See original recipe source.",  // placeholder instructions
+      ]
+    );
+
+    
+    await pool.query(
+      `INSERT INTO userFavorites 
+         (userID, recipeID, title, imageUrl, calories, protein, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE
+         title    = VALUES(title),
+         imageUrl = VALUES(imageUrl),
+         calories = VALUES(calories),
+         protein  = VALUES(protein)`,
+      [userId, recipeId, title, imageUrl, cal, prot]
+    );
+
+    // Go back to the page the user was on (so they can keep browsing).
+    const referer = req.get("Referer") || "/recipes";
+    res.redirect(referer);
+  } catch (err) {
+    console.error("Favorites add error:", err);
+    res.status(500).send("Failed to add favorite");
+  }
+});
+
+app.post("/favorites/remove", requireLogin, async (req, res) => {
+  const { recipeId } = req.body;
+  const userId = req.session.userId;
+
+  try {
+    await pool.query(
+      "DELETE FROM userFavorites WHERE userID = ? AND recipeID = ?",
+      [userId, recipeId]
+    );
+    res.redirect("/favorites");
+  } catch (err) {
+    console.error("Favorites remove error:", err);
+    res.status(500).send("Failed to remove favorite");
+  }
+});
+
+// ----------------- TRACKER (simple placeholder) -----------------
 
 app.get("/tracker", async (req, res) => {
   if (!req.session.isAuthenticated) {
-    // Guest: let EJS show sample totals + sample entries
+    // guest → sample view (handled in EJS using totals=null, entries=null)
     return res.render("tracker.ejs", { totals: null, entries: null });
   }
 
-  // Logged in: TODO load real tracker data from DB.
-  const totals = null;
-  const entries = [];
-  res.render("tracker.ejs", { totals, entries });
+  const userId = req.session.userId;
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT recipeID, calories, protein, carbs, fat, date_logged
+         FROM tracker
+        WHERE userID = ?
+        ORDER BY date_logged DESC`,
+      [userId]
+    );
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    const todayRows = rows.filter((r) => {
+      const d =
+        r.date_logged instanceof Date
+          ? r.date_logged.toISOString().slice(0, 10)
+          : String(r.date_logged).slice(0, 10);
+      return d === today;
+    });
+
+    const totals = todayRows.reduce(
+      (acc, r) => {
+        acc.calories += r.calories || 0;
+        acc.protein += Number(r.protein || 0);
+        acc.carbs += Number(r.carbs || 0);
+        acc.fat += Number(r.fat || 0);
+        return acc;
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    const entries = todayRows.map((r) => ({
+      meal: `Recipe #${r.recipeID}`,
+      calories: r.calories,
+      protein: Number(r.protein || 0),
+      carbs: Number(r.carbs || 0),
+      fat: Number(r.fat || 0),
+    }));
+
+    res.render("tracker.ejs", { totals, entries });
+  } catch (err) {
+    console.error("Tracker view error:", err);
+    res.status(500).send("Failed to load tracker");
+  }
 });
+
+// basic add since anghel will take a look at this
+app.post("/tracker/add", requireLogin, async (req, res) => {
+  const { recipeId, recipeData } = req.body;
+  const userId = req.session.userId;
+
+  try {
+    const parsed = JSON.parse(recipeData);
+
+    const title =
+      parsed.title ||
+      parsed.name ||
+      parsed.strMeal ||
+      `Recipe #${recipeId}`;
+
+    // Ensure base recipe exists for FK
+    await upsertFoodRecipe(recipeId, title);
+
+    // Use Gemini to get nutrition (your teammate can refine this)
+    const nutrition = await extractNutrition(parsed);
+
+    await pool.query(
+      `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, date_logged) 
+       VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
+      [
+        userId,
+        Number(recipeId),
+        nutrition.calories,
+        nutrition.protein,
+        nutrition.fat,
+        nutrition.carbs,
+      ]
+    );
+
+    res.redirect("/tracker");
+  } catch (err) {
+    console.error("Tracker add error:", err);
+    res.status(500).send("Failed to add to tracker");
+  }
+});
+
 
 // ----------------- DB TEST -----------------
 
@@ -418,7 +474,7 @@ app.get("/dbTest", async (req, res) => {
     console.error("Database error:", err);
     res.status(500).send("Database error!");
   }
-});//dbTest
+});
 
 app.listen(3000, () => {
   console.log("Express server running");

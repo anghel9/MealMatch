@@ -4,16 +4,18 @@
   <%- include('partials/head.ejs') %>
   <title>Search Recipes</title>
 </head>
-
 <body>
   <%- include('partials/nav.ejs') %>
 
-  <main class="container mt-4 mb-5" style="max-width: 1100px;">
-    <!-- Search header -->
-    <h1 class="h3 mb-3">Search Recipes</h1>
+  <main class="container py-4">
 
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="m-0">Search Recipes</h2>
+    </div>
+
+    
     <form class="row g-2 mb-4" method="GET" action="/recipes">
-      <div class="col-md-9">
+      <div class="col-md-8">
         <input
           type="text"
           name="keyword"
@@ -22,68 +24,88 @@
           value="<%= typeof keyword !== 'undefined' ? keyword : '' %>"
         >
       </div>
-      <div class="col-md-3 d-grid">
-        <button class="btn btn-success" type="submit">Search</button>
+      <div class="col-md-4 d-grid d-md-block">
+        <button type="submit" class="btn btn-success">
+          Search
+        </button>
       </div>
     </form>
 
     <% if (!meals || !meals.length) { %>
-      <p class="text-muted">
-        No recipes found. Try a different ingredient or combination of ingredients.
-      </p>
+      <div class="alert alert-warning">
+        No recipes found.
+      </div>
     <% } else { %>
-      <!-- Card grid -->
       <div class="row row-cols-1 row-cols-md-3 g-4">
         <% meals.forEach(meal => { %>
           <div class="col">
             <div class="card h-100 shadow-sm">
-              <img
-                src="<%= meal.strMealThumb %>"
-                alt="<%= meal.strMeal %>"
-                class="card-img-top"
-                style="height: 200px; object-fit: cover;"
-              >
+              <% if (meal.strMealThumb) { %>
+                <img src="<%= meal.strMealThumb %>" class="card-img-top" alt="<%= meal.strMeal %>">
+              <% } %>
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title"><%= meal.strMeal %></h5>
 
-                <p class="card-text mb-1 small text-muted">Top ingredients</p>
-                <ul class="small mb-3">
-                  <% 
-                    // Show up to ~6 ingredients from TheMealDB data
-                    for (let i = 1; i <= 20; i++) {
-                      const ing = meal['strIngredient' + i];
+                
+                <p class="fw-semibold mb-1" style="font-size:.9rem;">Top ingredients</p>
+                <ul class="mb-2" style="font-size:.85rem;">
+                  <%
+                    let i = 1, count = 0;
+                    while (i <= 20 && count < 6) {
+                      const ing  = meal['strIngredient' + i];
                       const meas = meal['strMeasure' + i];
-                      if (!ing || (typeof ing === 'string' && ing.trim() === '')) continue;
+                      if (ing && ing.trim() !== '') {
                   %>
-                    <li><%= (meas || '').trim() %> <%= ing %></li>
-                  <% 
-                      // stop early after a few for brevity
-                      if (i >= 6) break;
-                    } 
+                        <li><%= (meas || '').trim() %> <%= ing.trim() %></li>
+                  <%
+                        count++;
+                      }
+                      i++;
+                    }
                   %>
                 </ul>
 
-                <div class="mt-auto d-flex justify-content-between">
+                <div class="mt-auto d-flex flex-wrap gap-2">
                   <% if (meal.strYoutube) { %>
-                    <a
-                      href="<%= meal.strYoutube %>"
-                      target="_blank"
-                      rel="noopener"
-                      class="btn btn-sm btn-outline-success"
-                    >
+                    <a href="<%= meal.strYoutube %>" target="_blank" rel="noopener"
+                       class="btn btn-outline-success btn-sm">
                       YouTube
                     </a>
                   <% } %>
 
                   <% if (meal.strSource) { %>
-                    <a
-                      href="<%= meal.strSource %>"
-                      target="_blank"
-                      rel="noopener"
-                      class="btn btn-sm btn-outline-secondary"
-                    >
+                    <a href="<%= meal.strSource %>" target="_blank" rel="noopener"
+                       class="btn btn-outline-secondary btn-sm">
                       Source
                     </a>
+                  <% } %>
+
+                  <% if (isAuthenticated) { %>
+                    
+                    <form method="POST" action="/favorites/add" class="d-inline">
+                      <input type="hidden" name="recipeId" value="<%= meal.idMeal %>">
+                      <input type="hidden" name="title"    value="<%= meal.strMeal %>">
+                      <input type="hidden" name="imageUrl" value="<%= meal.strMealThumb %>">
+                      <input type="hidden" name="calories" value="">
+                      <input type="hidden" name="protein"  value="">
+                      <button type="submit" class="btn btn-sm btn-outline-primary">
+                        Add to Favorites
+                      </button>
+                    </form>
+
+                    
+                    <form method="POST" action="/tracker/add" class="d-inline">
+                      <input type="hidden" name="recipeId" value="<%= meal.idMeal %>">
+                      <input type="hidden" name="recipeData"
+                             value='<%= JSON.stringify(meal) %>'>
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">
+                        Add to Tracker
+                      </button>
+                    </form>
+                  <% } else { %>
+                    <span class="text-muted small">
+                      <a href="/login">Log in</a> to save or track this recipe.
+                    </span>
                   <% } %>
                 </div>
               </div>
@@ -92,6 +114,7 @@
         <% }) %>
       </div>
     <% } %>
+
   </main>
 
   <%- include('partials/foot.ejs') %>

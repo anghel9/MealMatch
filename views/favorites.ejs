@@ -13,19 +13,35 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h2 class="m-0">My Favorite Recipes</h2>
 
+      <%
+        const sortParam = typeof sort !== 'undefined' ? sort : 'name';
+      %>
+
       <div class="dropdown">
         <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
           Sort
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="?sort=calories">Calories</a></li>
-          <li><a class="dropdown-item" href="?sort=protein">Protein</a></li>
-          <li><a class="dropdown-item" href="?sort=name">Name</a></li>
+          <li>
+            <a class="dropdown-item <%= sortParam === 'calories' ? 'active' : '' %>" href="?sort=calories">
+              Calories
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item <%= sortParam === 'protein' ? 'active' : '' %>" href="?sort=protein">
+              Protein
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item <%= sortParam === 'name' ? 'active' : '' %>" href="?sort=name">
+              Name
+            </a>
+          </li>
         </ul>
       </div>
     </div>
 
-    <!-- Top alert: different for guest vs logged in -->
+    <!-- different for guests vs users that are logged in. -->
     <% if (!isAuthenticated) { %>
       <div class="alert alert-warning mt-3">
         You’re currently viewing <strong>sample favorite meals</strong>.
@@ -39,7 +55,7 @@
       </div>
     <% } %>
 
-    <% 
+    <%
       // Sample favorites to show ONLY for guests
       const sampleFavs = [
         {
@@ -65,26 +81,29 @@
       ];
 
       let favs;
+      let mode; // 'guest-sample' or 'user-db'
 
       if (!isAuthenticated) {
         // GUEST: always show sample favorites
         favs = sampleFavs;
+        mode = 'guest-sample';
       } else {
-        // LOGGED IN:
-        //  - if a "favorites" array is passed in and has items, use it
-        //  - otherwise start empty (no favorites yet)
-        if (typeof favorites !== 'undefined' &&
-            Array.isArray(favorites) &&
-            favorites.length > 0) {
+        // LOGGED IN: use DB favorites if provided, otherwise empty
+        if (
+          typeof favorites !== 'undefined' &&
+          Array.isArray(favorites) &&
+          favorites.length > 0
+        ) {
           favs = favorites;
         } else {
           favs = [];
         }
+        mode = 'user-db';
       }
     %>
 
     <ul class="list-group shadow-sm mt-3">
-      <% if (isAuthenticated && favs.length === 0) { %>
+      <% if (mode === 'user-db' && favs.length === 0) { %>
         <!-- Logged in, but no favorites yet -->
         <li class="list-group-item text-center text-muted">
           You don’t have any favorites yet. Browse recipes and add some!
@@ -92,30 +111,50 @@
       <% } else { %>
         <% favs.forEach(f => { %>
           <li class="list-group-item d-flex align-items-center">
-            <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3"
-                 style="width:64px;height:64px;object-fit:cover;">
+            <% if (mode === 'guest-sample') { %>
 
-            <div class="flex-grow-1">
-              <div class="fw-semibold"><%= f.strMeal %></div>
-            </div>
+              <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3"
+                   style="width:64px;height:64px;object-fit:cover;">
+              <div class="flex-grow-1">
+                <div class="fw-semibold"><%= f.strMeal %></div>
+              </div>
 
-            <a class="btn btn-sm btn-outline-success me-2"
-               href="https://www.themealdb.com/meal/<%= f.idMeal %>"
-               target="_blank" rel="noopener">
-              View
-            </a>
+              <a class="btn btn-sm btn-outline-success me-2"
+                 href="https://www.themealdb.com/meal/<%= f.idMeal %>"
+                 target="_blank" rel="noopener">
+                View
+              </a>
 
-            <% if (isAuthenticated) { %>
-              <!-- Real remove button when logged in (POST to route you’ll add later) -->
-              <form method="POST" action="/favorites/remove" class="m-0">
-                <input type="hidden" name="mealId" value="<%= f.idMeal %>">
-                <button class="btn btn-sm btn-outline-danger">Remove</button>
-              </form>
-            <% } else { %>
-              <!-- Disabled remove when not logged in -->
+              <!-- Remove disabled for guests -->
               <button class="btn btn-sm btn-outline-danger" disabled title="Login required">
                 Remove
               </button>
+
+            <% } else { %>
+
+              <img src="<%= f.imageUrl %>" alt="" class="rounded me-3"
+                   style="width:64px;height:64px;object-fit:cover;">
+              <div class="flex-grow-1">
+                <div class="fw-semibold"><%= f.title %></div>
+
+                <% if (f.calories != null || f.protein != null) { %>
+                  <div class="text-muted small">
+                    <% if (f.calories != null) { %>
+                      <%= f.calories %> kcal
+                    <% } %>
+                    <% if (f.protein != null) { %>
+                      &middot; <%= f.protein %> g protein
+                    <% } %>
+                  </div>
+                <% } %>
+              </div>
+
+
+
+              <form method="POST" action="/favorites/remove" class="m-0 ms-2">
+                <input type="hidden" name="recipeId" value="<%= f.recipeID %>">
+                <button class="btn btn-sm btn-outline-danger">Remove</button>
+              </form>
             <% } %>
           </li>
         <% }) %>
