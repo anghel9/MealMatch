@@ -36,34 +36,32 @@
       </div>
     <% } %>
 
-
     <%
-  let t;
-  let list;
+      let t;
+      let list;
 
-  if (!isAuthenticated) {
-    // GUEST: sample totals + sample entries
-    t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
-    list = [
-      { meal: 'Greek Yogurt + Berries',       calories: 220, protein: 20, carbs: 28, fat: 4 },
-      { meal: 'Grilled Chicken Salad',        calories: 480, protein: 42, carbs: 35, fat: 18 },
-      { meal: 'Salmon + Rice + Broccoli',     calories: 650, protein: 46, carbs: 55, fat: 22 },
-      { meal: 'Protein Shake',                calories: 220, protein: 30, carbs: 8,  fat: 5 },
-      { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
-    ];
-  } else {
-    // LOGGED IN: use real data if provided, otherwise start empty
-    t = (typeof totals !== 'undefined' && totals)
-        ? totals
-        : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      if (!isAuthenticated) {
+        // GUEST: sample totals + sample entries
+        t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
+        list = [
+          { meal: 'Greek Yogurt + Berries',       calories: 220, protein: 20, carbs: 28, fat: 4 },
+          { meal: 'Grilled Chicken Salad',        calories: 480, protein: 42, carbs: 35, fat: 18 },
+          { meal: 'Salmon + Rice + Broccoli',     calories: 650, protein: 46, carbs: 55, fat: 22 },
+          { meal: 'Protein Shake',                calories: 220, protein: 30, carbs: 8,  fat: 5 },
+          { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
+        ];
+      } else {
+        // LOGGED IN: use real data if provided, otherwise start empty / zeros
+        t = (typeof totals !== 'undefined' && totals)
+            ? totals
+            : { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-    list = (typeof entries !== 'undefined' && entries && entries.length)
-        ? entries
-        : [];
-  }
-%>
+        list = (typeof entries !== 'undefined' && entries && entries.length)
+            ? entries
+            : [];
+      }
+    %>
 
-    
     <div class="row g-3 mb-3">
       <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
@@ -91,7 +89,6 @@
       </div>
     </div>
 
-    
     <div class="card shadow-sm">
       <div class="table-responsive">
         <table class="table table-striped mb-0">
@@ -114,7 +111,11 @@
             <% } else { %>
               <% list.forEach(e => { %>
                 <tr>
-                  <td><%= e.meal %></td>
+                  <td>
+                    <%= e.meal 
+                        || e.title 
+                        || (e.recipeID ? ('Recipe #' + e.recipeID) : 'Recipe') %>
+                  </td>
                   <td><%= e.calories %></td>
                   <td><%= e.protein %></td>
                   <td><%= e.carbs %></td>
@@ -130,5 +131,4 @@
 
   <%- include('partials/foot.ejs') %>
 </body>
-
 </html>
