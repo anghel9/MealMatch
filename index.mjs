@@ -239,7 +239,25 @@ app.post("/admin/users/:id/delete", requireAdmin, async (req, res) => {
       return res.status(400).send("You cannot delete your own account.");
     }
 
-    await pool.query("DELETE FROM usersMM WHERE userID = ?", [id]);
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // delete child rows first
+      await conn.query("DELETE FROM tracker WHERE userID = ?", [id]);
+      await conn.query("DELETE FROM userFavorites WHERE userID = ?", [id]);
+
+      // now delete the user
+      await conn.query("DELETE FROM usersMM WHERE userID = ?", [id]);
+
+      await conn.commit();
+    } catch (txErr) {
+      await conn.rollback();
+      throw txErr;
+    } finally {
+      conn.release();
+    }
+
     res.redirect("/admin/dashboard");
   } catch (err) {
     console.error("Admin delete user error:", err);
