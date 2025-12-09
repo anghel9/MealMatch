@@ -1,9 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!--
+    /**
+     * @file recipesFallback.ejs
+     * @title Fallback Recipes — TheMealDB
+     * @description Displays fallback recipe results when Spoonacular API limit is reached.
+     *
+     * @variables
+     *  @var {Array} meals — TheMealDB results
+     *  @var {Boolean} isAuthenticated — Whether the user is logged in
+     *
+     * @routes
+     *  GET /recipes
+     *  POST /favorites/add
+     *  GET  /tracker/portion/:recipeId
+     */
+  -->
   <%- include('partials/head.ejs') %>
   <title>Search Recipes</title>
 </head>
+
 <body>
   <%- include('partials/nav.ejs') %>
 
@@ -13,102 +30,97 @@
       <h2 class="m-0">Search Recipes</h2>
     </div>
 
-    
+    <!-- Search bar -->
     <form class="row g-2 mb-4" method="GET" action="/recipes">
       <div class="col-md-8">
-        <input
-          type="text"
-          name="keyword"
-          class="form-control"
-          placeholder="Search by ingredients (e.g. chicken, rice)"
-          value="<%= typeof keyword !== 'undefined' ? keyword : '' %>"
-        >
+        <input type="text"
+               name="keyword"
+               class="form-control"
+               placeholder="Search by ingredients"
+               value="<%= keyword || '' %>">
       </div>
       <div class="col-md-4 d-grid d-md-block">
-        <button type="submit" class="btn btn-success">
-          Search
-        </button>
+        <button class="btn btn-success">Search</button>
       </div>
     </form>
 
+    <!-- No results -->
     <% if (!meals || !meals.length) { %>
-      <div class="alert alert-warning">
-        No recipes found.
-      </div>
+      <div class="alert alert-warning">No recipes found.</div>
+
     <% } else { %>
+
       <div class="row row-cols-1 row-cols-md-3 g-4">
+
         <% meals.forEach(meal => { %>
-          <div class="col">
-            <div class="card h-100 shadow-sm">
-              <% if (meal.strMealThumb) { %>
-                <img src="<%= meal.strMealThumb %>" class="card-img-top" alt="<%= meal.strMeal %>">
-              <% } %>
-              <div class="card-body d-flex flex-column">
-                <h5 class="card-title"><%= meal.strMeal %></h5>
+        <div class="col">
+          <div class="card h-100 shadow-sm">
 
-                
-                <p class="fw-semibold mb-1" style="font-size:.9rem;">Top ingredients</p>
-                <ul class="mb-2" style="font-size:.85rem;">
-                  <%
-                    let i = 1, count = 0;
-                    while (i <= 20 && count < 6) {
-                      const ing  = meal['strIngredient' + i];
-                      const meas = meal['strMeasure' + i];
-                      if (ing && ing.trim() !== '') {
-                  %>
-                        <li><%= (meas || '').trim() %> <%= ing.trim() %></li>
-                  <%
-                        count++;
-                      }
-                      i++;
-                    }
-                  %>
-                </ul>
+            <% if (meal.strMealThumb) { %>
+            <img src="<%= meal.strMealThumb %>"
+                 class="card-img-top"
+                 alt="<%= meal.strMeal %>">
+            <% } %>
 
-                <div class="mt-auto d-flex flex-wrap gap-2">
-                  <% if (meal.strYoutube) { %>
-                    <a href="<%= meal.strYoutube %>" target="_blank" rel="noopener"
-                       class="btn btn-outline-success btn-sm">
-                      YouTube
-                    </a>
-                  <% } %>
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title"><%= meal.strMeal %></h5>
 
-                  <% if (meal.strSource) { %>
-                    <a href="<%= meal.strSource %>" target="_blank" rel="noopener"
-                       class="btn btn-outline-secondary btn-sm">
-                      Source
-                    </a>
-                  <% } %>
+              <p class="fw-semibold mb-1" style="font-size:.9rem;">Top ingredients</p>
+              <ul class="mb-2" style="font-size:.85rem;">
+                <% let i = 1, count = 0; 
+                   while (i <= 20 && count < 6) {
+                     const ing  = meal['strIngredient' + i];
+                     const meas = meal['strMeasure' + i];
+                     if (ing && ing.trim()) { %>
+                       <li><%= (meas || '').trim() %> <%= ing.trim() %></li>
+                <%     count++; }
+                     i++;
+                   } %>
+              </ul>
 
-                  <% if (isAuthenticated) { %>
-                    
-                    <form method="POST" action="/favorites/add" class="d-inline">
-                      <input type="hidden" name="recipeId" value="<%= meal.idMeal %>">
-                      <input type="hidden" name="title"    value="<%= meal.strMeal %>">
-                      <input type="hidden" name="imageUrl" value="<%= meal.strMealThumb %>">
-                      <input type="hidden" name="calories" value="">
-                      <input type="hidden" name="protein"  value="">
-                      <button type="submit" class="btn btn-sm btn-outline-primary">
-                        Add to Favorites
-                      </button>
-                    </form>
+              <div class="mt-auto d-flex flex-wrap gap-2">
 
-                    
-                    <a href="/tracker/portion/<%= meal.idMeal %>?data=<%= encodeURIComponent(JSON.stringify(meal)) %>" 
-                      class="btn btn-sm btn-outline-secondary">
-                      Add to Tracker
-                    </a>
-                  <% } else { %>
-                    <span class="text-muted small">
-                      <a href="/login">Log in</a> to save or track this recipe.
-                    </span>
-                  <% } %>
-                </div>
+                <% if (meal.strYoutube) { %>
+                <a href="<%= meal.strYoutube %>" class="btn btn-outline-success btn-sm" target="_blank">
+                  YouTube
+                </a>
+                <% } %>
+
+                <% if (meal.strSource) { %>
+                <a href="<%= meal.strSource %>" class="btn btn-outline-secondary btn-sm" target="_blank">Source</a>
+                <% } %>
+
+                <% if (isAuthenticated) { %>
+
+                <form method="POST" action="/favorites/add" class="d-inline">
+                  <input type="hidden" name="recipeId" value="<%= meal.idMeal %>">
+                  <input type="hidden" name="title" value="<%= meal.strMeal %>">
+                  <input type="hidden" name="imageUrl" value="<%= meal.strMealThumb %>">
+                  <button class="btn btn-outline-primary btn-sm">Add to Favorites</button>
+                </form>
+
+                <a href="/tracker/portion/<%= meal.idMeal %>?data=<%= encodeURIComponent(JSON.stringify(meal)) %>"
+                   class="btn btn-outline-secondary btn-sm">
+                  Add to Tracker
+                </a>
+
+                <% } else { %>
+
+                <span class="text-muted small">
+                  <a href="/login">Log in</a> to save or track this recipe.
+                </span>
+
+                <% } %>
+
               </div>
+
             </div>
           </div>
+        </div>
         <% }) %>
+
       </div>
+
     <% } %>
 
   </main>

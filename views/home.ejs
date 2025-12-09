@@ -1,48 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+  <!--
+    /**
+     * @file home.ejs
+     * @title MealMatch — Home
+     * @description Landing page for MealMatch, showcasing hero content,
+     *              macro snapshot preview, and feature overview.
+     *
+     * @dependencies
+     *  - partials/head.ejs
+     *  - partials/nav.ejs
+     *  - partials/foot.ejs
+     *  - Custom CSS classes under /public/css/styles.css
+     *
+     * @routes
+     *  GET /  — renders this page
+     */
+  -->
   <%- include('partials/head.ejs') %>
   <title>MealMatch</title>
 </head>
+
 <body>
+  <!--
+    /**
+     * @section Navigation
+     * @description Global site navigation (Login, Recipes, Favorites, etc.)
+     */
+  -->
   <%- include('partials/nav.ejs') %>
 
   <main>
+
+    <!--
+      /**
+       * @section Hero Section
+       * @description Large introductory header with branding, tagline,
+       *              call-to-action buttons, and a sample daily macro snapshot.
+       *
+       * @components
+       *  - mm-hero: Primary landing section container
+       *  - mm-hero-inner: Layout wrapper for text + card
+       *  - mm-hero-text: Marketing headline + CTA
+       *  - mm-hero-card: Example macro summary for guests
+       *
+       * @behavior
+       *  - Macro snapshot displays static values and prompts login
+       */
+    -->
     <section class="mm-hero">
       <div class="container mm-hero-inner">
+
+        <!-- Hero text block -->
         <div class="mm-hero-text">
           <h1 class="mm-hero-title">Match your meals to your goals.</h1>
+
           <p class="mm-hero-subtitle">
             Search recipes by ingredients, track your macros, and save your favorite meals
             – all in one place.
           </p>
+
+          <!--
+            /**
+             * @actions CTA Buttons
+             * @description Encourages guest users to create an account or start browsing recipes.
+             */
+          -->
           <div class="mm-hero-actions">
             <a href="/create" class="btn btn-mm-primary me-2">Get started</a>
             <a href="/recipes" class="btn btn-mm-secondary">Browse recipes</a>
           </div>
         </div>
+
+        <!--
+          /**
+           * @component Macro Snapshot Card
+           * @description Displays a static example of daily calories/macros.
+           *              Real numbers appear only when authenticated.
+           *
+           * @staticData
+           *  calories: 1870
+           *  protein: 122g
+           *  carbs: 210g
+           *  fat: 62g
+           */
+        -->
         <div class="mm-hero-card">
           <h5 class="mb-3">Today’s snapshot</h5>
+
           <div class="mm-macro-row">
             <div class="mm-macro-chip">
               <span class="mm-macro-label">Calories</span>
               <span class="mm-macro-value">1870</span>
             </div>
+
             <div class="mm-macro-chip">
               <span class="mm-macro-label">Protein</span>
               <span class="mm-macro-value">122 g</span>
             </div>
           </div>
+
           <div class="mm-macro-row">
             <div class="mm-macro-chip">
               <span class="mm-macro-label">Carbs</span>
               <span class="mm-macro-value">210 g</span>
             </div>
+
             <div class="mm-macro-chip">
               <span class="mm-macro-label">Fat</span>
               <span class="mm-macro-value">62 g</span>
             </div>
           </div>
+
           <p class="mm-hero-footnote mt-3 mb-0">
             Sign in to see your actual data.
           </p>
@@ -50,32 +121,76 @@
       </div>
     </section>
 
+    <!--
+      /**
+       * @section Features Section
+       * @description Highlights the three core MealMatch features:
+       *              - Ingredient-based recipe search
+       *              - Macro tracking
+       *              - Saving favorites
+       *
+       * @components
+       *  - mm-card: Feature information cards
+       *  - row g-3: Responsive Bootstrap grid
+       */
+    -->
     <section class="mm-section">
       <div class="container">
         <div class="row g-3">
+
+          <!-- Feature: Search by ingredient -->
+          <!--
+            /**
+             * @feature Search Recipes
+             * @description Allows users to search recipes based on available ingredients.
+             */
+          -->
           <div class="col-md-4">
             <div class="mm-card">
               <h5>Search by ingredient</h5>
               <p>Type what you have in your fridge and we’ll suggest complete meals.</p>
             </div>
           </div>
+
+          <!-- Feature: Track macros -->
+          <!--
+            /**
+             * @feature Macro Tracking
+             * @description Users can log meals and view nutrition summaries.
+             */
+          -->
           <div class="col-md-4">
             <div class="mm-card">
               <h5>Track macros</h5>
               <p>Log meals and see calories, protein, carbs, and fats at a glance.</p>
             </div>
           </div>
+
+          <!-- Feature: Save favorites -->
+          <!--
+            /**
+             * @feature Save Favorites
+             * @description Users can bookmark meals they enjoy for quick future access.
+             */
+          -->
           <div class="col-md-4">
             <div class="mm-card">
               <h5>Save favorites</h5>
               <p>Bookmark meals you love so they’re just a tap away next time.</p>
             </div>
           </div>
+
         </div>
       </div>
     </section>
   </main>
 
+  <!--
+    /**
+     * @footer Includes global footer template containing scripts and closing tags.
+     */
+  -->
   <%- include('partials/foot.ejs') %>
+
 </body>
 </html>

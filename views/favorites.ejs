@@ -1,43 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+  <!--
+    /**
+     * @file favorites.ejs
+     * @title My Favorite Recipes
+     * @description Displays either a user's saved favorite recipes (when logged in)
+     *              or sample dishes (when not authenticated). Supports sorting by
+     *              calories, protein, or alphabetical name.
+     *
+     * @dependencies
+     *  - partials/head.ejs
+     *  - Bootstrap 5
+     *  - Bootstrap Icons
+     *  - EJS variables:
+     *      @var {Boolean} isAuthenticated - Whether the user is logged in.
+     *      @var {String} userName - Logged-in user’s display name.
+     *      @var {Array} favorites - Favorites fetched from userFavorites table.
+     *      @var {String} sort - Selected sorting method.
+     *
+     * @route GET /favorites
+     * @route POST /favorites/remove
+     */
+  -->
+
   <%- include('partials/head.ejs') %>
   <title>My Favorite Recipes</title>
 </head>
 
 <body>
+  <!--
+    /**
+     * @section Navigation Bar
+     * @description Shared nav component showing Login, Favorites, Tracker, etc.
+     */
+  -->
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-4" style="max-width: 980px;">
 
+    <!--
+      /**
+       * @header Favorites Page Header
+       * @description Displays page title and sorting dropdown.
+       */
+    -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h2 class="m-0">My Favorite Recipes</h2>
 
+      <!--
+        /**
+         * @component Sort Dropdown
+         * @description Allows sorting favorites by calories, protein, or name.
+         */
+      -->
       <div class="dropdown">
         <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
           Sort
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li>
-            <a class="dropdown-item <%= sort === 'calories' ? 'active' : '' %>" href="?sort=calories">
-              Calories
-            </a>
+            <a class="dropdown-item <%= sort === 'calories' ? 'active' : '' %>" href="?sort=calories">Calories</a>
           </li>
           <li>
-            <a class="dropdown-item <%= sort === 'protein' ? 'active' : '' %>" href="?sort=protein">
-              Protein
-            </a>
+            <a class="dropdown-item <%= sort === 'protein' ? 'active' : '' %>" href="?sort=protein">Protein</a>
           </li>
           <li>
-            <a class="dropdown-item <%= sort === 'name' ? 'active' : '' %>" href="?sort=name">
-              Name
-            </a>
+            <a class="dropdown-item <%= sort === 'name' ? 'active' : '' %>" href="?sort=name">Name</a>
           </li>
         </ul>
       </div>
     </div>
 
-    <!-- Top alert: guest vs logged in -->
+    <!--
+      /**
+       * @block Auth Alerts
+       * @description Shows different alerts for guests and logged-in users.
+       */
+    -->
     <% if (!isAuthenticated) { %>
       <div class="alert alert-warning mt-3">
         You’re currently viewing <strong>sample favorite meals</strong>.
@@ -51,55 +92,71 @@
       </div>
     <% } %>
 
+    <!--
+      /**
+       * @data Sample Guest Favorites
+       * @description Used only when the user is not authenticated.
+       *              Falls back to static ThemealDB items.
+       *
+       * @var {Array} sampleFavs - 4 placeholder meals for preview mode.
+       */
+    -->
     <%
-      // Sample favorites for GUESTS only (ThemealDB data)
       const sampleFavs = [
-        {
-          idMeal: '52771',
-          strMeal: 'Spaghetti Bolognese',
-          strMealThumb: 'https://www.themealdb.com/images/media/meals/ustsqw1468250014.jpg'
-        },
-        {
-          idMeal: '52818',
-          strMeal: 'Grilled Chicken Salad',
-          strMealThumb: 'https://www.themealdb.com/images/media/meals/1529446352.jpg'
-        },
-        {
-          idMeal: '53065',
-          strMeal: 'Veggie Stir Fry',
-          strMealThumb: 'https://www.themealdb.com/images/media/meals/wai9bw1619788844.jpg'
-        },
-        {
-          idMeal: '52959',
-          strMeal: 'Beef & Broccoli',
-          strMealThumb: 'https://www.themealdb.com/images/media/meals/1529444830.jpg'
-        }
+        { idMeal: '52771', strMeal: 'Spaghetti Bolognese', strMealThumb: 'https://www.themealdb.com/images/media/meals/ustsqw1468250014.jpg' },
+        { idMeal: '52818', strMeal: 'Grilled Chicken Salad', strMealThumb: 'https://www.themealdb.com/images/media/meals/1529446352.jpg' },
+        { idMeal: '53065', strMeal: 'Veggie Stir Fry',      strMealThumb: 'https://www.themealdb.com/images/media/meals/wai9bw1619788844.jpg' },
+        { idMeal: '52959', strMeal: 'Beef & Broccoli',      strMealThumb: 'https://www.themealdb.com/images/media/meals/1529444830.jpg' }
       ];
 
-      let favs;
-      if (!isAuthenticated) {
-        // Guest: always show sampleFavs
-        favs = sampleFavs;
-      } else {
-        // Logged in: use favorites from DB (route passes `favorites`)
-        favs = (Array.isArray(favorites) && favorites.length) ? favorites : [];
-      }
+      /**
+       * Determine which list of favorites to show (sample or real).
+       * @var {Array} favs - Computed favorites list for rendering.
+       */
+      let favs = !isAuthenticated
+        ? sampleFavs
+        : (Array.isArray(favorites) && favorites.length ? favorites : []);
     %>
 
+    <!--
+      /**
+       * @section Favorites List
+       * @description Renders each favorite recipe with image, name,
+       *              nutrition info (if logged in), and remove button.
+       *
+       * @behavior
+       *  - Guests: View button only, cannot remove.
+       *  - Logged-in users: Remove favorite via POST /favorites/remove.
+       */
+    -->
     <ul class="list-group shadow-sm mt-3">
+
       <% if (isAuthenticated && favs.length === 0) { %>
-        <!-- Logged in but no favorites yet -->
+        <!--
+          /**
+           * @state Empty Favorites
+           * @description Displayed when the user has no saved items.
+           */
+        -->
         <li class="list-group-item text-center text-muted">
           You don’t have any favorites yet. Browse recipes and add some!
         </li>
+
       <% } else { %>
+
         <% favs.forEach(f => { %>
           <li class="list-group-item d-flex align-items-center">
 
             <% if (!isAuthenticated) { %>
-              <!-- Guest: ThemealDB sample -->
+              <!--
+                /**
+                 * @mode Guest
+                 * @description Displays sample ThemealDB favorites only.
+                 */
+              -->
               <img src="<%= f.strMealThumb %>" alt="" class="rounded me-3"
                    style="width:64px;height:64px;object-fit:cover;">
+
               <div class="flex-grow-1">
                 <div class="fw-semibold"><%= f.strMeal %></div>
               </div>
@@ -113,8 +170,15 @@
               <button class="btn btn-sm btn-outline-danger" disabled title="Login required">
                 Remove
               </button>
+
             <% } else { %>
-              
+              <!--
+                /**
+                 * @mode Authenticated User
+                 * @description Displays user's real favorites from the database.
+                 * Includes remove button and optional nutrition info.
+                 */
+              -->
               <img src="<%= f.imageUrl %>" alt="" class="rounded me-3"
                    style="width:64px;height:64px;object-fit:cover;">
 
@@ -126,17 +190,32 @@
                 </small>
               </div>
 
+              <!--
+                /**
+                 * @form Remove Favorite
+                 * @route POST /favorites/remove
+                 * @field recipeId - ID of recipe to remove.
+                 */
+              -->
               <form method="POST" action="/favorites/remove" class="m-0">
                 <input type="hidden" name="recipeId" value="<%= f.recipeID %>">
                 <button class="btn btn-sm btn-outline-danger">Remove</button>
               </form>
+
             <% } %>
           </li>
         <% }) %>
+
       <% } %>
     </ul>
   </div>
 
+  <!--
+    /**
+     * @footer Includes shared footer and scripts.
+     */
+  -->
   <%- include('partials/foot.ejs') %>
+
 </body>
 </html>
