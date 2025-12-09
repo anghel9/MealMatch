@@ -268,12 +268,14 @@ app.get("/favorites", async (req, res) => {
   const sort = req.query.sort || "name";
 
   if (!req.session.isAuthenticated) {
+    // Guest: EJS will show sample favorites
     return res.render("favorites.ejs", { favorites: null, sort });
   }
 
   try {
     const userId = req.session.userId;
 
+    // Sanitize the sort option → a real column
     let orderBy = "title";
     if (sort === "calories") orderBy = "calories";
     else if (sort === "protein") orderBy = "protein";
@@ -293,6 +295,7 @@ app.get("/favorites", async (req, res) => {
   }
 });
 
+
 app.post("/favorites/add", requireLogin, async (req, res) => {
   const { recipeId, title, imageUrl, calories, protein } = req.body;
   const userId = req.session.userId;
@@ -301,20 +304,6 @@ app.post("/favorites/add", requireLogin, async (req, res) => {
     const cal  = calories ? Number(calories) : null;
     const prot = protein  ? Number(protein)  : null;
 
-    // insert an ignore since we do not want users to add dupe favorites
-    await pool.query(
-      `INSERT IGNORE INTO foodRecipes
-         (recipeID, title, ingredients, instructions, isFavorite)
-       VALUES (?, ?, ?, ?, 1)`,
-      [
-        recipeId,
-        title,
-        "Imported from external API",   // placeholder ingredients
-        "See original recipe source.",  // placeholder instructions
-      ]
-    );
-
-    
     await pool.query(
       `INSERT INTO userFavorites 
          (userID, recipeID, title, imageUrl, calories, protein, createdAt)
@@ -327,14 +316,14 @@ app.post("/favorites/add", requireLogin, async (req, res) => {
       [userId, recipeId, title, imageUrl, cal, prot]
     );
 
-    // Go back to the page the user was on (so they can keep browsing).
-    const referer = req.get("Referer") || "/recipes";
-    res.redirect(referer);
+    // stay on the same page; front-end JS can show a toast or message
+    res.json({ success: true });
   } catch (err) {
     console.error("Favorites add error:", err);
-    res.status(500).send("Failed to add favorite");
+    res.status(500).json({ success: false, error: "Failed to add favorite" });
   }
 });
+
 
 app.post("/favorites/remove", requireLogin, async (req, res) => {
   const { recipeId } = req.body;
