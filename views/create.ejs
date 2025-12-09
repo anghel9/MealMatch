@@ -2,96 +2,201 @@
 <html lang="en">
 
 <head>
+  <!--
+    /**
+     * @file Create Account Page
+     * @description Renders the registration form for new MealMatch users.
+     * 
+     * @dependencies
+     *  - partials/head.ejs
+     *  - Bootstrap 5.3.8
+     *  - Bootstrap Icons 1.13.1
+     *  - /public/css/styles.css
+     * 
+     * @route POST /create
+     * @variables
+     *  @var {string|null} registerError - Error message displayed when registration fails.
+     */
+  -->
+
   <%- include('partials/head.ejs') %>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link href="/public/css/styles.css" rel="stylesheet">
-    <title>Create Account</title>
 
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <link href="/public/css/styles.css" rel="stylesheet">
 
+  <title>Create Account</title>
 </head>
 
 <body>
+  <!--
+    /**
+     * @section Navigation
+     * @description Includes MealMatch navigation bar.
+     */
+  -->
   <%- include('partials/nav.ejs') %>
 
-    <div class="container mt-5" style="max-width: 520px;">
-      <h2 class="text-center mb-4">Register to MealMatch</h2>
+  <!--
+    /**
+     * @section Registration Card
+     * @description Contains the form used to create a new user account.
+     */
+  -->
+  <div class="container mt-5" style="max-width: 520px;">
+    <h2 class="text-center mb-4">Register to MealMatch</h2>
 
-      <% if (registerError) { %>
-        <div class="alert alert-danger">
-          <%= registerError %>
+    <!--
+      /**
+       * @block Error Message
+       * @description Displays if the server returns a registration validation error.
+       */
+    -->
+    <% if (registerError) { %>
+      <div class="alert alert-danger">
+        <%= registerError %>
+      </div>
+    <% } %>
+
+    <!--
+      /**
+       * @form Registration Form
+       * @route POST /create
+       * @description Sends new account details to the server.
+       *
+       * @fields
+       *  - username: Required text field
+       *  - email: Required email field
+       *  - password: Required password field
+       *  - confirm: Required password confirmation field
+       */
+    -->
+    <form action="/create" method="post" class="card shadow-sm p-4">
+
+      <!-- Username -->
+      <!--
+        /**
+         * @input username
+         * @type text
+         * @description The user's chosen name used for login and display.
+         */
+      -->
+      <div class="mb-3 text-start">
+        <label for="username" class="form-label">Username</label>
+        <input type="text"
+               class="form-control"
+               id="username"
+               name="username"
+               placeholder="Choose a username"
+               required>
+      </div>
+
+      <!-- Email -->
+      <!--
+        /**
+         * @input email
+         * @type email
+         * @description The user’s email, used for login and account recovery.
+         */
+      -->
+      <div class="mb-3 text-start">
+        <label for="email" class="form-label">Email address</label>
+        <input type="email"
+               class="form-control"
+               id="email"
+               name="email"
+               placeholder="Enter your email"
+               required>
+      </div>
+
+      <!-- Password -->
+      <!--
+        /**
+         * @input password
+         * @type password
+         * @description Password field with toggle visibility icon.
+         */
+      -->
+      <div class="mb-3 text-start">
+        <label for="password" class="form-label">Password</label>
+        <div class="password-wrapper">
+          <input type="password"
+                 class="form-control"
+                 id="password"
+                 name="password"
+                 placeholder="Enter a password"
+                 required>
+          <span class="bi bi-eye-slash password-toggle" data-target="password"></span>
         </div>
-        <% } %>
+      </div>
 
-          <form action="/create" method="post" class="card shadow-sm p-4">
-            <div class="mb-3 text-start">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" placeholder="Choose a username"
-                required>
-            </div>
+      <!-- Confirm Password -->
+      <!--
+        /**
+         * @input confirm
+         * @type password
+         * @description Ensures the user entered matching passwords.
+         */
+      -->
+      <div class="mb-3 text-start">
+        <label for="confirm" class="form-label">Confirm Password</label>
+        <div class="password-wrapper">
+          <input type="password"
+                 class="form-control"
+                 id="confirm"
+                 name="confirm"
+                 placeholder="Re-enter your password"
+                 required>
+          <span class="bi bi-eye-slash password-toggle" data-target="confirm"></span>
+        </div>
+      </div>
 
-            <div class="mb-3 text-start">
-              <label for="email" class="form-label">Email address</label>
-              <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
-            </div>
+      <!-- Submit Button -->
+      <!--
+        /**
+         * @button Create Account
+         * @description Submits form to create a new user.
+         */
+      -->
+      <div class="d-grid">
+        <button type="submit" class="btn btn-success">Create Account</button>
+      </div>
 
-            <div class="mb-3 text-start">
-              <label for="password" class="form-label">Password</label>
-              <div class="password-wrapper">
-                <input type="password" class="form-control" id="password" name="password" placeholder="Enter a password"
-                  required>
-                <span class="bi bi-eye-slash password-toggle" data-target="password"></span>
-              </div>
-            </div>
+      <!-- Already have an account? -->
+      <div class="text-center mt-3">
+        <small>
+          Have an account?
+          <a href="/login" class="text-success text-decoration-none">Login here</a>.
+        </small>
+      </div>
+    </form>
+  </div>
 
-            <div class="mb-3 text-start">
-              <label for="confirm" class="form-label">Confirm Password</label>
-              <div class="password-wrapper">
-                <input type="password" class="form-control" id="confirm" name="confirm"
-                  placeholder="Re-enter your password" required>
-                <span class="bi bi-eye-slash password-toggle" data-target="confirm"></span>
-              </div>
-            </div>
+  <%- include('partials/foot.ejs') %>
 
+  <!--
+    /**
+     * @script Password Visibility Toggle
+     * @description Allows toggling password and confirm password fields
+     * between text and masked input.
+     */
+  -->
+  <script>
+    document.querySelectorAll('.password-toggle').forEach(icon => {
+      const input = document.getElementById(icon.dataset.target);
+      if (!input) return;
 
-            <div class="d-grid">
-              <button type="submit" class="btn btn-success">Create Account</button>
-            </div>
+      icon.addEventListener('click', () => {
+        const isHidden = input.type === "password";
 
-            <div class="text-center mt-3">
-              <small>Have an account?
-                <a href="/login" class="text-success text-decoration-none">Login here</a>.
-              </small>
-            </div>
-          </form>
-    </div>
+        input.type = isHidden ? "text" : "password";
 
-    <%- include('partials/foot.ejs') %>
-
-      <script>
-        document.querySelectorAll('.password-toggle').forEach(icon => {
-          const input = document.getElementById(icon.dataset.target);
-          if (!input) return;
-
-          icon.addEventListener('click', () => {
-            const isHidden = input.type === 'password';
-
-            if (isHidden) {
-              // show password
-              input.type = 'text';
-              icon.classList.remove('bi-eye-slash');
-              icon.classList.add('bi-eye');
-            } else {
-              // hide password
-              input.type = 'password';
-              icon.classList.remove('bi-eye');
-              icon.classList.add('bi-eye-slash');
-            }
-          });
-        });
-      </script>
+        icon.classList.toggle("bi-eye-slash", !isHidden);
+        icon.classList.toggle("bi-eye", isHidden);
+      });
+    });
+  </script>
 
 </body>
-
 </html>

@@ -2,118 +2,140 @@
 <html lang="en">
 
 <head>
+  <!--
+    /**
+     * @file recipes.ejs
+     * @title Search Recipes — Spoonacular Version
+     * @description Displays recipes returned by Spoonacular API, allows sorting,
+     *              adding to favorites, and sending meals to the tracker.
+     *
+     * @variables
+     *  @var {String} keyword - Search term entered by the user
+     *  @var {Array} meals - Spoonacular recipe details
+     *  @var {Boolean} isAuthenticated - Whether user is logged in
+     *
+     * @routes
+     *  GET /recipes — Search recipes
+     *  POST /favorites/add — Add to favorites
+     *  POST /tracker/add — Add meal directly to tracker
+     */
+  -->
   <%- include('partials/head.ejs') %>
-    <title>Search Recipes</title>
+  <title>Search Recipes</title>
 </head>
 
 <body>
   <%- include('partials/nav.ejs') %>
 
-    <main class="container py-4">
+  <main class="container py-4">
 
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="m-0">Search Recipes</h2>
+    </div>
 
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="m-0">Search Recipes</h2>
+    <!-- Search Form -->
+    <form class="row g-2 mb-4" method="GET" action="/recipes">
+      <div class="col-md-8">
+        <input type="text"
+               name="keyword"
+               class="form-control"
+               placeholder="Search by ingredients (e.g. chicken, rice)"
+               value="<%= keyword || '' %>"
+               required>
+      </div>
+      <div class="col-md-4 d-grid d-md-block">
+        <button type="submit" class="btn btn-success">Search</button>
+      </div>
+    </form>
+
+    <!-- Search results -->
+    <% if (!keyword) { %>
+
+      <p class="text-muted">
+        Start by typing one or more ingredients above and click <strong>Search</strong>.
+      </p>
+
+    <% } else if (!meals || !meals.length) { %>
+
+      <div class="alert alert-warning">
+        No recipes found for "<strong><%= keyword %></strong>".
       </div>
 
+    <% } else { %>
 
-      <form class="row g-2 mb-4" method="GET" action="/recipes">
-        <div class="col-md-8">
-          <input type="text" name="keyword" class="form-control"
-            placeholder="Search by ingredients (e.g. chicken, rice)" value="<%= keyword || '' %>" required>
-        </div>
-        <div class="col-md-4 d-grid d-md-block">
-          <button type="submit" class="btn btn-success">
-            Search
-          </button>
-        </div>
-      </form>
+      <!-- Recipe Cards Loop -->
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        <% meals.forEach(meal=> { %>
+        <div class="col">
+          <div class="card h-100 shadow-sm">
 
-      <% if (!keyword) { %>
-
-        <p class="text-muted">
-          Start by typing one or more ingredients above and click <strong>Search</strong>.
-        </p>
-        <% } else if (!meals || !meals.length) { %>
-
-          <div class="alert alert-warning">
-            No recipes found for "<strong>
-              <%= keyword %>
-            </strong>".
-            Try different ingredients or fewer filters.
-          </div>
-          <% } else { %>
-
-            <div class="row row-cols-1 row-cols-md-3 g-4">
-              <% meals.forEach(meal=> { %>
-                <div class="col">
-                  <div class="card h-100 shadow-sm">
-                    <% if (meal.image) { %>
-                      <img src="<%= meal.image %>" class="card-img-top" alt="<%= meal.title %>">
-                      <% } %>
-                        <div class="card-body d-flex flex-column">
-                          <h5 class="card-title">
-                            <%= meal.title %>
-                          </h5>
-
-                          <% if (meal.readyInMinutes) { %>
-                            <p class="card-text text-muted mb-1">
-                              Ready in <%= meal.readyInMinutes %> min
-                            </p>
-                            <% } %>
-
-                              <% if (meal.servings) { %>
-                                <p class="card-text text-muted mb-2">
-                                  Servings: <%= meal.servings %>
-                                </p>
-                                <% } %>
-
-                                  <div class="mt-auto d-flex flex-wrap gap-2">
-                                    <% if (meal.sourceUrl) { %>
-                                      <a href="<%= meal.sourceUrl %>" target="_blank" rel="noopener"
-                                        class="btn btn-outline-success btn-sm">
-                                        View Recipe
-                                      </a>
-                                      <% } %>
-
-                                        <% if (isAuthenticated) { %>
-
-                                          <form method="POST" action="/favorites/add" class="d-inline">
-                                            <input type="hidden" name="recipeId" value="<%= meal.id %>">
-                                            <input type="hidden" name="title" value="<%= meal.title %>">
-                                            <input type="hidden" name="imageUrl" value="<%= meal.image %>">
-                                            <input type="hidden" name="calories" value="">
-                                            <input type="hidden" name="protein" value="">
-                                            <button type="submit" class="btn btn-outline-warning btn-sm">
-                                            Add to Favorite
-                                            </button>
-                                          </form>
-
-
-
-                                          <form method="POST" action="/tracker/add" class="d-inline">
-                                            <input type="hidden" name="recipeId" value="<%= meal.id %>">
-                                            <input type="hidden" name="recipeData" value='<%= JSON.stringify(meal) %>'>
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                              Add to Tracker
-                                            </button>
-                                          </form>
-                                          <% } else { %>
-                                            <span class="text-muted small">
-                                              <a href="/login">Log in</a> to save or track this recipe.
-                                            </span>
-                                            <% } %>
-                                  </div>
-                        </div>
-                  </div>
-                </div>
-                <% }) %>
-            </div>
+            <!-- Meal Image -->
+            <% if (meal.image) { %>
+              <img src="<%= meal.image %>" class="card-img-top" alt="<%= meal.title %>">
             <% } %>
 
-    </main>
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title"><%= meal.title %></h5>
 
-    <%- include('partials/foot.ejs') %>
+              <% if (meal.readyInMinutes) { %>
+              <p class="text-muted mb-1">
+                Ready in <%= meal.readyInMinutes %> min
+              </p>
+              <% } %>
+
+              <% if (meal.servings) { %>
+              <p class="text-muted mb-2">Servings: <%= meal.servings %></p>
+              <% } %>
+
+              <div class="mt-auto d-flex flex-wrap gap-2">
+
+                <!-- Recipe Source Link -->
+                <% if (meal.sourceUrl) { %>
+                <a href="<%= meal.sourceUrl %>"
+                   target="_blank"
+                   class="btn btn-outline-success btn-sm">
+                  View Recipe
+                </a>
+                <% } %>
+
+                <!-- Add to favorites -->
+                <% if (isAuthenticated) { %>
+                <form method="POST" action="/favorites/add" class="d-inline">
+                  <input type="hidden" name="recipeId" value="<%= meal.id %>">
+                  <input type="hidden" name="title" value="<%= meal.title %>">
+                  <input type="hidden" name="imageUrl" value="<%= meal.image %>">
+                  <input type="hidden" name="calories">
+                  <input type="hidden" name="protein">
+                  <button class="btn btn-outline-warning btn-sm">Add to Favorite</button>
+                </form>
+
+                <!-- Add to Tracker -->
+                <form method="POST" action="/tracker/add" class="d-inline">
+                  <input type="hidden" name="recipeId" value="<%= meal.id %>">
+                  <input type="hidden" name="recipeData" value='<%= JSON.stringify(meal) %>'>
+                  <button class="btn btn-outline-secondary btn-sm">Add to Tracker</button>
+                </form>
+
+                <% } else { %>
+
+                <span class="text-muted small">
+                  <a href="/login">Log in</a> to save or track this recipe.
+                </span>
+
+                <% } %>
+
+              </div>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+
+    <% } %>
+
+  </main>
+
+  <%- include('partials/foot.ejs') %>
 </body>
-
 </html>

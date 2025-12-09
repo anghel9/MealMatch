@@ -20,6 +20,12 @@
         <li class="nav-item">
           <a class="nav-link" href="/favorites">Favorites</a>
         </li>
+
+        <% if (isAuthenticated && isAdmin) { %>
+          <li class="nav-item">
+            <a class="nav-link text-warning" href="/admin/dashboard">Admin Dashboard</a>
+          </li>
+        <% } %>
       </ul>
 
       <ul class="navbar-nav ms-auto">
@@ -29,17 +35,21 @@
               Hi, <%= userName || 'User' %>
             </span>
           </li>
+
           <li class="nav-item">
             <a class="btn btn-sm btn-outline-light ms-2" href="/logout">Logout</a>
           </li>
+
         <% } else { %>
-          
+
           <li class="nav-item">
             <a class="btn btn-sm btn-outline-light me-2" href="/login">Login</a>
           </li>
+
           <li class="nav-item">
             <a class="btn btn-sm btn-mm-primary" href="/create">Sign up</a>
           </li>
+
         <% } %>
       </ul>
     </div>

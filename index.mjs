@@ -1,309 +1,431 @@
-  import "dotenv/config";
-  import express from "express";
-  import mysql from "mysql2/promise";
-  import session from "express-session";
-  import bcrypt from "bcrypt";
-  import { GoogleGenAI } from "@google/genai";
+import "dotenv/config";
+import express from "express";
+import mysql from "mysql2/promise";
+import session from "express-session";
+import bcrypt from "bcrypt";
+import { GoogleGenAI } from "@google/genai";
 
-  const apiKey = process.env.API_KEY;
-  const app = express();
+const apiKey = process.env.API_KEY;
+const app = express();
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+/**
+ * Google Gemini Client
+ * @type {GoogleGenAI}
+ */
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  app.set("view engine", "ejs");
-  app.use(express.static("public"));
-  app.use(express.urlencoded({ extended: true }));
+app.set("view engine", "ejs");
+app.use(express.static("public"));
+app.use(express.urlencoded({ extended: true }));
 
-  // setting up database connection pool
-  const pool = mysql.createPool({
-    host: process.env.HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DATABASE,
-    connectionLimit: 10,
-    waitForConnections: true,
-  });
+/**
+ * Database connection pool
+ * @type {mysql.Pool}
+ */
+const pool = mysql.createPool({
+  host: process.env.HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DATABASE,
+  connectionLimit: 10,
+  waitForConnections: true,
+});
 
-  app.set("trust proxy", 1);
-  app.use(
-    session({
-      secret: "mealmatch secret",
-      resave: false,
-      saveUninitialized: true,
-    })
+app.set("trust proxy", 1);
+
+/**
+ * Session middleware configuration
+ */
+app.use(
+  session({
+    secret: "mealmatch secret",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
+/**
+ * Inject common template variables for all views
+ */
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = !!req.session.isAuthenticated;
+  res.locals.userName = req.session.userName || null;
+  res.locals.isAdmin = !!req.session.isAdmin;
+  next();
+});
+
+/**
+ * Require user authentication
+ * @function requireLogin
+ */
+function requireLogin(req, res, next) {
+  if (req.session.isAuthenticated) return next();
+  return res.redirect("/login");
+}
+
+/**
+ * Require admin privileges
+ * @function requireAdmin
+ */
+function requireAdmin(req, res, next) {
+  if (req.session.isAuthenticated && req.session.isAdmin) return next();
+  return res.status(403).send("Access denied.");
+}
+
+/**
+ * Insert or update a recipe in the foodRecipes table.
+ *
+ * @async
+ * @function upsertFoodRecipe
+ * @param {number|string} recipeId - Recipe ID from API.
+ * @param {string} title - Name of the recipe.
+ */
+async function upsertFoodRecipe(recipeId, title) {
+  const id = Number(recipeId);
+
+  const ingredients = "Imported from API";
+  const instructions = "See external recipe link for details.";
+  const isFavorite = 1;
+
+  await pool.query(
+    `INSERT INTO foodRecipes (recipeID, title, ingredients, instructions, isFavorite)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       title = VALUES(title),
+       ingredients = VALUES(ingredients),
+       instructions = VALUES(instructions),
+       isFavorite = VALUES(isFavorite)`,
+    [id, title, ingredients, instructions, isFavorite]
   );
+}
 
-  app.use((req, res, next) => {
-    res.locals.isAuthenticated = !!req.session.isAuthenticated;
-    res.locals.userName = req.session.userName || null;
-    res.locals.isAdmin = !!req.session.isAdmin;
-    next();
-  });
+/**
+ * Extract or estimate nutritional information for a recipe.
+ *
+ * @async
+ * @function extractNutrition
+ * @param {object} recipeData - Raw recipe object (Spoonacular or MealDB).
+ * @param {number} servings - Number of servings consumed.
+ * @returns {Promise<object>} Nutrition data {calories, protein, fat, carbs}
+ */
+async function extractNutrition(recipeData, servings = 1) {
+  const simplifiedRecipe = {
+    title: recipeData.title || recipeData.strMeal || "Unknown Recipe",
+    servings: recipeData.servings || 1,
+    ingredients: recipeData.extendedIngredients
+      ? recipeData.extendedIngredients
+          .slice(0, 5)
+          .map((i) => `${i.amount} ${i.unit} ${i.name}`)
+          .join(", ")
+      : "Various ingredients",
+  };
 
-  function requireLogin(req, res, next) {
-    if (req.session.isAuthenticated) return next();
-    return res.redirect("/login");
+  const prompt = `
+Estimate nutritional information for this recipe:
+Title: ${simplifiedRecipe.title}
+Key ingredients: ${simplifiedRecipe.ingredients}
+Recipe serves: ${simplifiedRecipe.servings}
+User consumed: ${servings} serving(s)
+
+Return ONLY this JSON format:
+{"calories": 0, "protein": 0, "fat": 0, "carbs": 0}
+`.trim();
+
+  try {
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    const text = result.response ? result.response.text() : result.text;
+    const jsonText = text.replace(/```json\n?|\n?```/g, "").trim();
+    return JSON.parse(jsonText);
+  } catch {
+    const baseCalories = 420 * servings;
+    return {
+      calories: Math.round(baseCalories),
+      protein: Math.round((baseCalories * 0.2) / 4),
+      fat: Math.round((baseCalories * 0.3) / 9),
+      carbs: Math.round((baseCalories * 0.5) / 4),
+    };
+  }
+}
+
+/* ============================================================
+ *                        BASIC ROUTES
+ * ============================================================*/
+
+/**
+ * Home page
+ */
+app.get("/", async (req, res) => {
+  res.render("home.ejs");
+});
+
+/* ============================================================
+ *                        ADMIN ROUTES
+ * ============================================================*/
+
+/**
+ * Admin login page
+ */
+app.get("/admin", (req, res) => {
+  if (req.session.isAuthenticated && req.session.isAdmin) {
+    return res.redirect("/admin/dashboard");
+  }
+  res.render("admin.ejs", { loginError: "" });
+});
+
+/**
+ * Admin dashboard
+ */
+app.get("/admin/dashboard", requireAdmin, async (req, res) => {
+  try {
+    const [users] = await pool.query(
+      "SELECT userID, username, email, isAdmin FROM usersMM ORDER BY userID"
+    );
+
+    const meals = [];
+    res.render("adminDashboard.ejs", { users, meals });
+  } catch (err) {
+    console.error("Admin dashboard error:", err);
+    res.status(500).send("Error loading admin dashboard.");
+  }
+});
+
+/**
+ * Create new user (admin-only)
+ */
+app.post("/admin/users/create", async (req, res) => {
+  const { username, email, password, isAdmin } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).send("Username, email, and password are required.");
   }
 
-  function requireAdmin(req, res, next) {
-    if (req.session.isAuthenticated && req.session.isAdmin) {
-      return next();
+  try {
+    const [existing] = await pool.query(
+      "SELECT userID FROM usersMM WHERE email = ? OR username = ?",
+      [email, username]
+    );
+
+    if (existing.length) {
+      return res.status(400).send("A user with that email or username already exists.");
     }
-    return res.status(403).send("Access denied.");
-  }
 
-  async function upsertFoodRecipe(recipeId, title) {
-    const id = Number(recipeId);
-
-    
-    const ingredients  = "Imported from API";
-    const instructions = "See external recipe link for details.";
-    const isFavorite   = 1; // mark as favorite in the db
+    const hash = await bcrypt.hash(password, 10);
+    const isAdminFlag = isAdmin ? 1 : 0;
 
     await pool.query(
-      `INSERT INTO foodRecipes (recipeID, title, ingredients, instructions, isFavorite)
-      VALUES (?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        title        = VALUES(title),
-        ingredients  = VALUES(ingredients),
-        instructions = VALUES(instructions),
-        isFavorite   = VALUES(isFavorite)`,
-      [id, title, ingredients, instructions, isFavorite]
+      "INSERT INTO usersMM (username, email, password, isAdmin) VALUES (?, ?, ?, ?)",
+      [username, email, hash, isAdminFlag]
     );
+
+    res.redirect("/admin/dashboard");
+  } catch (err) {
+    console.error("Admin create user error:", err);
+    res.status(500).send("Error creating user.");
   }
+});
 
-  async function extractNutrition(recipeData, servings = 1) {
-    const simplifiedRecipe = {
-      title: recipeData.title || recipeData.strMeal || "Unknown Recipe",
-      servings: recipeData.servings || 1,
-      ingredients: recipeData.extendedIngredients 
-          ? recipeData.extendedIngredients.slice(0, 5).map(i => `${i.amount} ${i.unit} ${i.name}`).join(", ")
-          : "Various ingredients"
-    };
+/**
+ * Delete a user (admin-only)
+ */
+app.post("/admin/users/:id/delete", requireAdmin, async (req, res) => {
+  const { id } = req.params;
 
-    const prompt = 
-    `Estimate nutritional information for this recipe:
-    Title: ${simplifiedRecipe.title}
-    Key ingredients: ${simplifiedRecipe.ingredients}
-    Recipe serves: ${simplifiedRecipe.servings}
-    User consumed: ${servings} serving(s)
-    
-    Return ONLY this JSON format (numbers only):
-    {"calories": 0, "protein": 0, "fat": 0, "carbs": 0}`;
-
-    try {
-      const result = await ai.models.generateContent({
-          model: "gemini-2.5-flash",  
-          contents: prompt,
-      });
-
-      const text = result.response ? result.response.text() : result.text;
-      const jsonText = text.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(jsonText);
-    } catch (err) {
-      
-      
-      const baseCalories = 420 * servings;
-      return {
-          calories: Math.round(baseCalories),
-          protein: Math.round(baseCalories * 0.20 / 4),
-          fat: Math.round(baseCalories * 0.30 / 9),
-          carbs: Math.round(baseCalories * 0.50 / 4)
-      };
+  try {
+    if (Number(id) === req.session.userId) {
+      return res.status(400).send("You cannot delete your own account.");
     }
+
+    await pool.query("DELETE FROM usersMM WHERE userID = ?", [id]);
+    res.redirect("/admin/dashboard");
+  } catch (err) {
+    console.error("Admin delete user error:", err);
+    res.status(500).send("Error deleting user.");
   }
+});
 
+/* ============================================================
+ *                        RECIPES ROUTES
+ * ============================================================*/
 
-  // ----------------- BASIC ROUTES -----------------
+/**
+ * Fetch a random recipe from API (falls back to MealDB)
+ */
+app.get("/recipes/random", async (req, res) => {
+  try {
+    let response = await fetch(
+      `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`
+    );
+    let data = await response.json();
 
-  app.get("/", async (req, res) => {
-    res.render("home.ejs");
-  });
-
-  // ----------------- ADMIN ROUTES -----------------
-
-  app.get("/admin", (req, res) => {
-    if (req.session.isAuthenticated && req.session.isAdmin) {
-      return res.redirect("/admin/dashboard");
+    if (data.code === 402 || data.status === "failure") {
+      const fallback = await fetch(
+        "https://www.themealdb.com/api/json/v1/1/random.php"
+      );
+      const alt = await fallback.json();
+      return res.render("recipesFallback.ejs", { meals: alt.meals || [], keyword: "" });
     }
 
-    res.render("admin.ejs", { loginError: "" });
-  });
+    res.render("recipes.ejs", { meals: data.recipes || [], keyword: "" });
+  } catch (err) {
+    console.error("API error:", err);
+    res.status(500).send("Error fetching recipes");
+  }
+});
 
-  app.get("/admin/dashboard", requireAdmin, (req, res) => {
-    res.render("adminDashboard.ejs");
-  });
+/**
+ * Search recipes by ingredient keyword
+ */
+app.get("/recipes", async (req, res) => {
+  const keyword = (req.query.keyword || "").trim();
+  if (!keyword) return res.render("recipes.ejs", { meals: [], keyword: "" });
 
-  // ----------------- RECIPES -----------------
+  try {
+    const url = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(
+      keyword
+    )}&number=9`;
 
-  app.get("/recipes/random", async (req, res) => {
-    try {
-      const url = `https://api.spoonacular.com/recipes/random?apiKey=${apiKey}`;
-      let response = await fetch(url);
-      let data = await response.json();
-      console.log("Spoonacular response:", data);
+    let response = await fetch(url);
+    let data = await response.json();
 
-      if (data.code === 402 || data.status === "failure") {
-        console.log("Spoonacular limit reached, using TheMealDB...");
-        const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/random.php`;
-        response = await fetch(fallbackUrl);
-        data = await response.json();
-        const meals = data.meals || [];
-        return res.render("recipesFallback.ejs", { meals, keyword: "" });
-      }
-
-      const meals = data.recipes || [];
-      res.render("recipes.ejs", { meals, keyword: "" });
-    } catch (err) {
-      console.error("API error:", err);
-      res.status(500).send("Error fetching recipes");
-    }
-  });
-
-  app.get("/recipes", async (req, res) => {
-    const keyword = (req.query.keyword || "").trim();
-
-    if (!keyword) {
-      return res.render("recipes.ejs", { meals: [], keyword: "" });
-    }
-
-    try {
-      const url = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(
-        keyword
-      )}&number=9`;
-      let response = await fetch(url);
-      let data = await response.json();
-      console.log("Spoonacular response:", data);
-
-      if (data.code === 402 || data.status === "failure") {
-        console.log("Spoonacular limit reached, using TheMealDB...");
-        const fallbackUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(
+    if (data.code === 402 || data.status === "failure") {
+      const fallback = await fetch(
+        `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(
           keyword
-        )}`;
-        response = await fetch(fallbackUrl);
-        data = await response.json();
-        const meals = data.meals || [];
-        return res.render("recipesFallback.ejs", { meals, keyword });
-      }
-
-      if (!Array.isArray(data)) {
-        return res.render("recipes.ejs", { meals: [], keyword });
-      }
-
-      const meals = await Promise.all(
-        data.map(async (recipe) => {
-          const detailUrl = `https://api.spoonacular.com/recipes/${recipe.id}/information?apiKey=${apiKey}`;
-          const detailResponse = await fetch(detailUrl);
-          return await detailResponse.json();
-        })
+        )}`
       );
-
-      res.render("recipes.ejs", { meals, keyword });
-    } catch (err) {
-      console.error("API error:", err);
-      res.status(500).send("Error fetching recipes");
+      const alt = await fallback.json();
+      return res.render("recipesFallback.ejs", { meals: alt.meals || [], keyword });
     }
-  });
 
-  // ----------------- USER AUTH -----------------
+    const meals =
+      Array.isArray(data)
+        ? await Promise.all(
+            data.map(async (recipe) => {
+              const detail = await fetch(
+                `https://api.spoonacular.com/recipes/${recipe.id}/information?apiKey=${apiKey}`
+              );
+              return detail.json();
+            })
+          )
+        : [];
 
-  app.get("/login", async (req, res) => {
-    if (req.session.isAuthenticated) {
-      return res.redirect("/");
+    res.render("recipes.ejs", { meals, keyword });
+  } catch (err) {
+    console.error("API error:", err);
+    res.status(500).send("Error fetching recipes");
+  }
+});
+
+/* ============================================================
+ *                        AUTH ROUTES
+ * ============================================================*/
+
+/**
+ * Login page
+ */
+app.get("/login", async (req, res) => {
+  if (req.session.isAuthenticated) return res.redirect("/");
+  res.render("login.ejs", { title: "Login", loginError: "" });
+});
+
+/**
+ * Process login credentials
+ */
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const [rows] = await pool.query("SELECT * FROM usersMM WHERE email = ?", [email]);
+
+    if (!rows.length) {
+      return res.render("login.ejs", { title: "Login", loginError: "Invalid email or password." });
     }
-    res.render("login.ejs", { title: "Login", loginError: "" });
-  });
 
-  app.post("/login", async (req, res) => {
-    const { email, password } = req.body;
+    const user = rows[0];
+    const match = await bcrypt.compare(password, user.password);
 
-    try {
-      const [rows] = await pool.query(
-        "SELECT * FROM usersMM WHERE email = ?",
-        [email]
-      );
-
-      if (!rows.length) {
-        return res.render("login.ejs", {
-          title: "Login",
-          loginError: "Invalid email or password.",
-        });
-      }
-
-      const user = rows[0];
-
-      const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-        return res.render("login.ejs", {
-          title: "Login",
-          loginError: "Invalid email or password.",
-        });
-      }
-
-      req.session.isAuthenticated = true;
-      req.session.userId = user.userID;
-      req.session.userName = user.username;
-      req.session.isAdmin = user.isAdmin === 1 || user.isAdmin === "1";
-
-      res.redirect("/");
-    } catch (err) {
-      console.error("Login error:", err);
-      res.status(500).send("Server error during login.");
+    if (!match) {
+      return res.render("login.ejs", { title: "Login", loginError: "Invalid email or password." });
     }
-  });
 
-  app.get("/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.redirect("/");
+    req.session.isAuthenticated = true;
+    req.session.userId = user.userID;
+    req.session.userName = user.username;
+    req.session.isAdmin = !!user.isAdmin;
+
+    res.redirect("/");
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).send("Server error during login.");
+  }
+});
+
+/**
+ * Logout user
+ */
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => res.redirect("/"));
+});
+
+/**
+ * Create account page
+ */
+app.get("/create", async (req, res) => {
+  if (req.session.isAuthenticated) return res.redirect("/");
+  res.render("create.ejs", { title: "Create Account", registerError: "" });
+});
+
+/**
+ * Create a new user account
+ */
+app.post("/create", async (req, res) => {
+  const { username, email, password, confirm } = req.body;
+
+  if (!username || !email || !password || password !== confirm) {
+    return res.render("create.ejs", {
+      title: "Create Account",
+      registerError: "Please fill all fields and make sure passwords match.",
     });
-  });
+  }
 
-  app.get("/create", async (req, res) => {
-    if (req.session.isAuthenticated) {
-      return res.redirect("/");
-    }
-    res.render("create.ejs", { title: "Create Account", registerError: "" });
-  });
+  try {
+    const [existing] = await pool.query(
+      "SELECT * FROM usersMM WHERE email = ? OR username = ?",
+      [email, username]
+    );
 
-  app.post("/create", async (req, res) => {
-    const { username, email, password, confirm } = req.body;
-
-    if (!username || !email || !password || password !== confirm) {
+    if (existing.length) {
       return res.render("create.ejs", {
         title: "Create Account",
-        registerError: "Please fill all fields and make sure passwords match.",
+        registerError: "Email or username already in use.",
       });
     }
 
-    try {
-      const [existing] = await pool.query(
-        "SELECT * FROM usersMM WHERE email = ? OR username = ?",
-        [email, username]
-      );
+    const hash = await bcrypt.hash(password, 10);
 
-      if (existing.length) {
-        return res.render("create.ejs", {
-          title: "Create Account",
-          registerError: "Email or username already in use.",
-        });
-      }
+    await pool.query(
+      "INSERT INTO usersMM (username, email, password) VALUES (?, ?, ?)",
+      [username, email, hash]
+    );
 
-      const hash = await bcrypt.hash(password, 10);
+    res.redirect("/login");
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(500).send("Server error during registration.");
+  }
+});
 
-      await pool.query(
-        "INSERT INTO usersMM (username, email, password) VALUES (?, ?, ?)",
-        [username, email, hash]
-      );
+/* ============================================================
+ *                        FAVORITES ROUTES
+ * ============================================================*/
 
-      res.redirect("/login");
-    } catch (err) {
-      console.error("Registration error:", err);
-      res.status(500).send("Server error during registration.");
-    }
-  });
-
-  // ----------------- FAVORITES -----------------
-
+/**
+ * Favorites page
+ */
 app.get("/favorites", async (req, res) => {
   const sort = req.query.sort || "name";
 
@@ -318,15 +440,15 @@ app.get("/favorites", async (req, res) => {
     let direction = "ASC";
 
     if (sort === "calories" || sort === "protein") {
-      orderBy = sort;     // "calories" or "protein"
-      direction = "DESC"; // highest first
+      orderBy = sort;
+      direction = "DESC";
     }
 
     const [rows] = await pool.query(
       `SELECT recipeID, title, imageUrl, calories, protein
-         FROM userFavorites
-        WHERE userID = ?
-        ORDER BY ${orderBy} ${direction}, title ASC`,
+       FROM userFavorites
+       WHERE userID = ?
+       ORDER BY ${orderBy} ${direction}, title ASC`,
       [userId]
     );
 
@@ -337,185 +459,215 @@ app.get("/favorites", async (req, res) => {
   }
 });
 
-
+/**
+ * Add to favorites
+ */
 app.post("/favorites/add", requireLogin, async (req, res) => {
   const { recipeId, title, imageUrl, calories, protein } = req.body;
   const userId = req.session.userId;
 
   try {
-
     await upsertFoodRecipe(recipeId, title);
 
-    // Make sure we always have some numeric values so sorting works
     const idNum = Number(recipeId) || 0;
-    const cal  = calories ? Number(calories) : (100 + (idNum % 400));  // 100–499
-    const prot = protein  ? Number(protein)  : (5 + (idNum % 40));     // 5–44
-
+    const cal = calories ? Number(calories) : 100 + (idNum % 400);
+    const prot = protein ? Number(protein) : 5 + (idNum % 40);
 
     await pool.query(
       `INSERT INTO userFavorites 
-         (userID, recipeID, title, imageUrl, calories, protein, createdAt)
+       (userID, recipeID, title, imageUrl, calories, protein, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, NOW())
        ON DUPLICATE KEY UPDATE
-         title    = VALUES(title),
+         title = VALUES(title),
          imageUrl = VALUES(imageUrl),
          calories = VALUES(calories),
-         protein  = VALUES(protein)`,
+         protein = VALUES(protein)`,
       [userId, Number(recipeId), title, imageUrl, cal, prot]
     );
 
-    // 4) Go back to the page where the form was submitted (usually /recipes)
-    const referer = req.get("Referer") || "/recipes";
-    res.redirect(referer);
+    res.redirect(req.get("Referer") || "/recipes");
   } catch (err) {
-    console.error("Favorites add error:", err.code, err.sqlMessage || err.message);
-    const referer = req.get("Referer") || "/recipes";
-    res.redirect(referer);
+    console.error("Favorites add error:", err);
+    res.redirect(req.get("Referer") || "/recipes");
   }
 });
 
+/**
+ * Remove favorite
+ */
+app.post("/favorites/remove", requireLogin, async (req, res) => {
+  const { recipeId } = req.body;
+  const userId = req.session.userId;
 
-  app.post("/favorites/remove", requireLogin, async (req, res) => {
-    const { recipeId } = req.body;
-    const userId = req.session.userId;
+  try {
+    await pool.query(
+      "DELETE FROM userFavorites WHERE userID = ? AND recipeID = ?",
+      [userId, recipeId]
+    );
+    res.redirect("/favorites");
+  } catch (err) {
+    console.error("Favorites remove error:", err);
+    res.status(500).send("Failed to remove favorite");
+  }
+});
 
-    try {
-      await pool.query(
-        "DELETE FROM userFavorites WHERE userID = ? AND recipeID = ?",
-        [userId, recipeId]
-      );
-      res.redirect("/favorites");
-    } catch (err) {
-      console.error("Favorites remove error:", err);
-      res.status(500).send("Failed to remove favorite");
-    }
-  });
+/* ============================================================
+ *                        TRACKER ROUTES
+ * ============================================================*/
 
-  // ----------------- TRACKER (simple placeholder) -----------------
+/**
+ * Tracker page — shows today's logged meals
+ */
+app.get("/tracker", async (req, res) => {
+  if (!req.session.isAuthenticated) {
+    return res.render("tracker.ejs", { totals: null, entries: null });
+  }
 
-  app.get("/tracker", async (req, res) => {
-    if (!req.session.isAuthenticated) {
-      // guest → sample view (handled in EJS using totals=null, entries=null)
-      return res.render("tracker.ejs", { totals: null, entries: null });
-    }
+  const userId = req.session.userId;
 
-    const userId = req.session.userId;
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, recipeID, recipeTitle, calories, protein, carbs, fat, date_logged
+       FROM tracker
+       WHERE userID = ?
+       ORDER BY date_logged DESC`,
+      [userId]
+    );
 
-    try {
-      const [rows] = await pool.query(
-        `SELECT recipeID, recipeTitle, calories, protein, carbs, fat, date_logged
-          FROM tracker
-          WHERE userID = ?
-          ORDER BY date_logged DESC`,
-        [userId]
-      );
+    const today = new Date().toISOString().slice(0, 10);
 
-      const today = new Date().toISOString().slice(0, 10);
+    const todayRows = rows.filter((r) => {
+      const d =
+        r.date_logged instanceof Date
+          ? r.date_logged.toISOString().slice(0, 10)
+          : String(r.date_logged).slice(0, 10);
+      return d === today;
+    });
 
-      const todayRows = rows.filter((r) => {
-        const d =
-          r.date_logged instanceof Date
-            ? r.date_logged.toISOString().slice(0, 10)
-            : String(r.date_logged).slice(0, 10);
-        return d === today;
-      });
+    const totals = todayRows.reduce(
+      (acc, r) => ({
+        calories: acc.calories + (r.calories || 0),
+        protein: acc.protein + Number(r.protein || 0),
+        carbs: acc.carbs + Number(r.carbs || 0),
+        fat: acc.fat + Number(r.fat || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
 
-      const totals = todayRows.reduce(
-        (acc, r) => {
-          acc.calories += r.calories || 0;
-          acc.protein += Number(r.protein || 0);
-          acc.carbs += Number(r.carbs || 0);
-          acc.fat += Number(r.fat || 0);
-          return acc;
-        },
-        { calories: 0, protein: 0, carbs: 0, fat: 0 }
-      );
+    const entries = todayRows.map((r) => ({
+      id: r.id,
+      meal: r.recipeTitle || `Recipe #${r.recipeID}`,
+      calories: r.calories,
+      protein: Number(r.protein || 0),
+      carbs: Number(r.carbs || 0),
+      fat: Number(r.fat || 0),
+    }));
 
-      const entries = todayRows.map((r) => ({
-        meal: r.recipeTitle || `Recipe #${r.recipeID}`,
-        calories: r.calories,
-        protein: Number(r.protein || 0),
-        carbs: Number(r.carbs || 0),
-        fat: Number(r.fat || 0),
-      }));
+    res.render("tracker.ejs", { totals, entries });
+  } catch (err) {
+    console.error("Tracker view error:", err);
+    res.status(500).send("Failed to load tracker");
+  }
+});
 
-      res.render("tracker.ejs", { totals, entries });
-    } catch (err) {
-      console.error("Tracker view error:", err);
-      res.status(500).send("Failed to load tracker");
-    }
-  });
+/**
+ * Portion selection form
+ */
+app.get("/tracker/portion/:recipeId", requireLogin, async (req, res) => {
+  const { recipeId } = req.params;
+  const recipeData = req.query.data;
 
-  // Show portion size form
-  app.get("/tracker/portion/:recipeId", requireLogin, async (req, res) => {
-    const { recipeId } = req.params;
-    const recipeData = req.query.data; // Pass recipe data through query string
-    
-    if (!recipeData) {
-      return res.redirect("/recipes");
-    }
+  if (!recipeData) return res.redirect("/recipes");
 
-    try {
-      const recipe = JSON.parse(decodeURIComponent(recipeData));
-      res.render("portionForm.ejs", { recipe, recipeId });
-    } catch (err) {
-      console.error("Portion form error:", err);
-      res.redirect("/recipes");
-    }
-  });
-  // basic add since anghel will take a look at this
-  app.post("/tracker/add", requireLogin, async (req, res) => {
-    const { recipeId, recipeData, servings } = req.body;
-    const userId = req.session.userId;
+  try {
+    const recipe = JSON.parse(decodeURIComponent(recipeData));
+    res.render("portionForm.ejs", { recipe, recipeId });
+  } catch (err) {
+    console.error("Portion form error:", err);
+    res.redirect("/recipes");
+  }
+});
 
-    try {
-      const parsed = JSON.parse(recipeData);
-      const portionSize = Number(servings) || 1;
+/**
+ * Add meal to tracker
+ */
+app.post("/tracker/add", requireLogin, async (req, res) => {
+  const { recipeId, recipeData, servings, recipeTitle } = req.body;
+  const userId = req.session.userId;
 
-      const title =
-        parsed.title ||
-        parsed.name ||
-        parsed.strMeal ||
-        `Recipe #${recipeId}`;
+  try {
+    const parsed = JSON.parse(recipeData);
+    const portionSize = Number(servings) || 1;
 
-      await upsertFoodRecipe(recipeId, title);
+    const title =
+      recipeTitle ||
+      parsed.title ||
+      parsed.name ||
+      parsed.strMeal ||
+      `Recipe #${recipeId}`;
 
-      // Pass portion size to Gemini
-      const nutrition = await extractNutrition(parsed, portionSize);
+    await upsertFoodRecipe(recipeId, title);
 
-      await pool.query(
-        `INSERT INTO tracker (userID, recipeID, calories, protein, fat, carbs, date_logged) 
-        VALUES (?, ?, ?, ?, ?, ?, CURDATE())`,
-        [
-          userId,
-          Number(recipeId),
-          nutrition.calories,
-          nutrition.protein,
-          nutrition.fat,
-          nutrition.carbs,
-        ]
-      );
+    const nutrition = await extractNutrition(parsed, portionSize);
 
-      res.redirect("/tracker");
-    } catch (err) {
-      console.error("Tracker add error:", err);
-      res.status(500).send("Failed to add to tracker");
-    }
-  });
+    await pool.query(
+      `INSERT INTO tracker 
+       (userID, recipeID, recipeTitle, calories, protein, fat, carbs, date_logged)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+      [
+        userId,
+        Number(recipeId),
+        title,
+        nutrition.calories,
+        nutrition.protein,
+        nutrition.fat,
+        nutrition.carbs,
+      ]
+    );
 
+    res.redirect("/tracker");
+  } catch (err) {
+    console.error("Tracker add error:", err);
+    res.status(500).send("Failed to add to tracker");
+  }
+});
 
-  // ----------------- DB TEST -----------------
+/**
+ * Delete a tracked meal
+ */
+app.post("/tracker/:id/delete", requireLogin, async (req, res) => {
+  const entryId = req.params.id;
+  const userId = req.session.userId;
 
-  app.get("/dbTest", async (req, res) => {
-    try {
-      const [rows] = await pool.query("SELECT CURDATE()");
-      res.send(rows);
-    } catch (err) {
-      console.error("Database error:", err);
-      res.status(500).send("Database error!");
-    }
-  });
+  try {
+    await pool.query("DELETE FROM tracker WHERE id = ? AND userID = ?", [
+      entryId,
+      userId,
+    ]);
 
-  app.listen(3000, () => {
-    console.log("Express server running");
-  });
+    res.redirect("/tracker");
+  } catch (err) {
+    console.error("Tracker delete error:", err);
+    res.status(500).send("Failed to delete entry");
+  }
+});
+
+/**
+ * DB connectivity test
+ */
+app.get("/dbTest", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT CURDATE()");
+    res.send(rows);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).send("Database error!");
+  }
+});
+
+/**
+ * Start Express server
+ */
+app.listen(3000, () => {
+  console.log("Express server running");
+});

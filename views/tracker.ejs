@@ -2,6 +2,23 @@
 <html lang="en">
 
 <head>
+  <!--
+    /**
+     * @file tracker.ejs
+     * @title MealMatch — Daily Tracker
+     * @description Displays a user's daily nutrient totals and list of meals
+     *              logged today. Supports deleting entries.
+     *
+     * @variables
+     *  @var {Boolean} isAuthenticated
+     *  @var {String|null} userName
+     *  @var {Object|null} totals — calorie, protein, carbs, fat totals
+     *  @var {Array|null} entries — meals logged today
+     *
+     * @routes
+     *  POST /tracker/:id/delete — remove entry
+     */
+  -->
   <%- include('partials/head.ejs') %>
   <title>Tracker</title>
 </head>
@@ -10,25 +27,20 @@
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-4" style="max-width: 960px;">
+
     <h2 class="mb-1">Daily Tracker</h2>
 
+    <!-- Login / Guest Messages -->
     <% if (!isAuthenticated) { %>
-      <p class="text-muted mb-2">
-        Sample dashboard (placeholder until user accounts are ready).
-      </p>
+      <p class="text-muted mb-2">Sample dashboard (placeholder).</p>
     <% } else { %>
-      <p class="text-muted mb-2">
-        View your daily calories and macros summary.
-      </p>
+      <p class="text-muted mb-2">View your daily macro summary.</p>
     <% } %>
 
     <% if (!isAuthenticated) { %>
       <div class="alert alert-warning mt-3">
-        This is a <strong>sample tracker view</strong>.
-        Your entries here are not saved.
-        <br>
-        <a href="/create" class="alert-link">Create an account</a> or
-        <a href="/login" class="alert-link">log in</a> to track your own meals and macros.
+        This is a <strong>sample tracker</strong>.
+        <br><a href="/create">Create an account</a> or <a href="/login">log in</a>.
       </div>
     <% } else { %>
       <div class="alert alert-success mt-3">
@@ -36,59 +48,38 @@
       </div>
     <% } %>
 
+    <!--
+      /**
+       * @logic Determine macro totals & entries
+       */
+    -->
     <%
       let t;
       let list;
-
       if (!isAuthenticated) {
-        // GUEST: sample totals + sample entries
         t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
         list = [
-          { meal: 'Greek Yogurt + Berries',       calories: 220, protein: 20, carbs: 28, fat: 4 },
-          { meal: 'Grilled Chicken Salad',        calories: 480, protein: 42, carbs: 35, fat: 18 },
-          { meal: 'Salmon + Rice + Broccoli',     calories: 650, protein: 46, carbs: 55, fat: 22 },
-          { meal: 'Protein Shake',                calories: 220, protein: 30, carbs: 8,  fat: 5 },
-          { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
+          { meal: 'Greek Yogurt + Berries', calories: 220, protein: 20, carbs: 28, fat: 4 },
+          { meal: 'Grilled Chicken Salad',  calories: 480, protein: 42, carbs: 35, fat: 18 },
+          { meal: 'Salmon + Rice',         calories: 650, protein: 46, carbs: 55, fat: 22 },
+          { meal: 'Protein Shake',         calories: 220, protein: 30, carbs: 8,  fat: 5 },
+          { meal: 'Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
         ];
       } else {
-        // LOGGED IN: use real data if provided, otherwise start empty / zeros
-        t = (typeof totals !== 'undefined' && totals)
-            ? totals
-            : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-
-        list = (typeof entries !== 'undefined' && entries && entries.length)
-            ? entries
-            : [];
+        t = totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        list = Array.isArray(entries) && entries.length ? entries : [];
       }
     %>
 
+    <!-- Macro Cards -->
     <div class="row g-3 mb-3">
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Calories</div>
-          <h4><%= t.calories %></h4>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Protein</div>
-          <h4><%= t.protein %> g</h4>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Carbs</div>
-          <h4><%= t.carbs %> g</h4>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Fat</div>
-          <h4><%= t.fat %> g</h4>
-        </div>
-      </div>
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Calories</div><h4><%= t.calories %></h4></div></div>
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Protein</div><h4><%= t.protein %> g</h4></div></div>
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Carbs</div><h4><%= t.carbs %> g</h4></div></div>
+      <div class="col-md-3"><div class="card p-3 text-center shadow-sm"><div>Fat</div><h4><%= t.fat %> g</h4></div></div>
     </div>
 
+    <!-- Tracker Table -->
     <div class="card shadow-sm">
       <div class="table-responsive">
         <table class="table table-striped mb-0">
@@ -99,34 +90,47 @@
               <th>Protein (g)</th>
               <th>Carbs (g)</th>
               <th>Fat (g)</th>
+              <% if (isAuthenticated) { %><th style="width:110px;">Actions</th><% } %>
             </tr>
           </thead>
+
           <tbody>
-            <% if (list.length === 0 && isAuthenticated) { %>
+
+            <% if (isAuthenticated && list.length === 0) { %>
               <tr>
-                <td colspan="5" class="text-center text-muted">
-                  No entries yet. Add a meal from the recipes page to start tracking.
-                </td>
+                <td colspan="6" class="text-center text-muted">No entries yet.</td>
               </tr>
-            <% } else { %>
-              <% list.forEach(e => { %>
-                <tr>
-                  <td>
-                    <%= e.meal 
-                        || e.recipeTitle 
-                        || (e.recipeID ? ('Recipe #' + e.recipeID) : 'Recipe') %>
-                  </td>
-                  <td><%= e.calories %></td>
-                  <td><%= e.protein %></td>
-                  <td><%= e.carbs %></td>
-                  <td><%= e.fat %></td>
-                </tr>
-              <% }) %>
-            <% } %>
+
+            <% } else { list.forEach(e => { %>
+              <tr>
+                <td><%= e.meal || e.recipeTitle || `Recipe #${e.recipeID}` %></td>
+                <td><%= e.calories %></td>
+                <td><%= e.protein %></td>
+                <td><%= e.carbs %></td>
+                <td><%= e.fat %></td>
+
+                <% if (isAuthenticated) { %>
+                <td>
+                  <% if (e.id) { %>
+                    <!-- Delete Entry -->
+                    <form method="POST"
+                          action="/tracker/<%= e.id %>/delete"
+                          onsubmit="return confirm('Delete this entry?');">
+                      <button class="btn btn-sm btn-outline-danger w-100">Delete</button>
+                    </form>
+                  <% } else { %>
+                    <span class="text-muted">—</span>
+                  <% } %>
+                </td>
+                <% } %>
+              </tr>
+            <% }) } %>
+
           </tbody>
         </table>
       </div>
     </div>
+
   </div>
 
   <%- include('partials/foot.ejs') %>

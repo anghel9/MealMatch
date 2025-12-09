@@ -2,79 +2,115 @@
 <html lang="en">
 
 <head>
-  <%- include('partials/head.ejs') %>
-    <link href="/public/css/styles.css" rel="stylesheet">
-    <title>Login</title>
+  <!--
+    /**
+     * @file login.ejs
+     * @title MealMatch — Login
+     * @description Provides login functionality for returning users. Includes
+     *              password visibility toggle and error messaging.
+     *
+     * @dependencies
+     *  - partials/head.ejs
+     *  - partials/nav.ejs
+     *  - Bootstrap Icons (password toggle)
+     *
+     * @routes
+     *  POST /login — Authenticates email/password credentials
+     *
+     * @variables
+     *  @var {String|null} loginError - Error message when authentication fails
+     */
+  -->
 
+  <%- include('partials/head.ejs') %>
+  <link href="/public/css/styles.css" rel="stylesheet">
+  <title>Login</title>
 </head>
 
 <body>
+  <!-- Navigation -->
   <%- include('partials/nav.ejs') %>
 
-    <div class="container mt-5" style="max-width: 500px;">
-      <h2 class="text-center mb-4">Login to MealMatch</h2>
+  <div class="container mt-5" style="max-width: 500px;">
+    <h2 class="text-center mb-4">Login to MealMatch</h2>
 
-      <% if (loginError) { %>
-        <div class="alert alert-danger">
-          <%= loginError %>
+    <!--
+      /**
+       * @alert Error message for invalid credentials
+       */
+    -->
+    <% if (loginError) { %>
+      <div class="alert alert-danger"><%= loginError %></div>
+    <% } %>
+
+    <!--
+      /**
+       * @form Login Form
+       * @route POST /login
+       * @description Captures user email and password for authentication.
+       */
+    -->
+    <form action="/login" method="post" class="card shadow-sm p-4">
+
+      <!-- Email -->
+      <div class="mb-3">
+        <label for="email" class="form-label">Email address</label>
+        <input type="email"
+               class="form-control"
+               id="email"
+               name="email"
+               placeholder="Enter your email"
+               required>
+      </div>
+
+      <!-- Password -->
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <div class="password-wrapper">
+          <input type="password"
+                 class="form-control"
+                 id="password"
+                 name="password"
+                 placeholder="Enter your password"
+                 required>
+          <span class="bi bi-eye-slash password-toggle" data-target="password"></span>
         </div>
-        <% } %>
+      </div>
 
-          <form action="/login" method="post" class="card shadow-sm p-4">
-            <div class="mb-3">
-              <label for="email" class="form-label">Email address</label>
-              <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
-            </div>
+      <!-- Submit -->
+      <div class="d-grid">
+        <button type="submit" class="btn btn-success">Login</button>
+      </div>
 
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <div class="password-wrapper">
-                <input type="password" class="form-control" id="password" name="password"
-                  placeholder="Enter your password" required>
-                <span class="bi bi-eye-slash password-toggle" data-target="password"></span>
-              </div>
-            </div>
+      <!-- Link: Create account -->
+      <div class="text-center mt-3">
+        <small>Don't have an account?
+          <a href="/create" class="text-success text-decoration-none">Create one here.</a>
+        </small>
+      </div>
+    </form>
+  </div>
 
+  <%- include('partials/foot.ejs') %>
 
-            <div class="d-grid">
-              <button type="submit" class="btn btn-success">Login</button>
-            </div>
+  <!--
+    /**
+     * @script Password Visibility Toggle
+     */
+  -->
+  <script>
+    document.querySelectorAll('.password-toggle').forEach(icon => {
+      const input = document.getElementById(icon.dataset.target);
+      if (!input) return;
 
-            <div class="text-center mt-3">
-              <small>Don't have an account?
-                <a href="/create" class="text-success text-decoration-none">
-                  Create one here.
-                </a>
-              </small>
-            </div>
-          </form>
-    </div>
-
-    <%- include('partials/foot.ejs') %>
-
-      <script>
-        document.querySelectorAll('.password-toggle').forEach(icon => {
-          const input = document.getElementById(icon.dataset.target);
-          if (!input) return;
-
-          icon.addEventListener('click', () => {
-            const isHidden = input.type === 'password';
-
-            if (isHidden) {
-              // show password
-              input.type = 'text';
-              icon.classList.remove('bi-eye-slash');
-              icon.classList.add('bi-eye');
-            } else {
-              // hide password
-              input.type = 'password';
-              icon.classList.remove('bi-eye');
-              icon.classList.add('bi-eye-slash');
-            }
-          });
-        });
-      </script>
+      icon.addEventListener('click', () => {
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        icon.classList.toggle('bi-eye-slash', !isHidden);
+        icon.classList.toggle('bi-eye', isHidden);
+      });
+    });
+  </script>
 
 </body>
-
 </html>

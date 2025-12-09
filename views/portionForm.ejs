@@ -1,46 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+  <!--
+    /**
+     * @file portionForm.ejs
+     * @title Add Portion Size
+     * @description Allows users to specify how many servings they consumed
+     *              before adding nutrition data to their tracker.
+     *
+     * @variables
+     *  @var {Object} recipe - Recipe object from API
+     *  @var {String} recipeId - Spoonacular/TheMealDB recipe ID
+     *
+     * @route POST /tracker/add
+     */
+  -->
   <%- include('partials/head.ejs') %>
   <title>Add Portion Size</title>
 </head>
+
 <body>
+  <!-- Navigation -->
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-5" style="max-width: 600px;">
     <h2 class="mb-4">Add to Tracker</h2>
-    
+
     <div class="card shadow-sm">
+
+      <!-- Recipe Image -->
       <% if (recipe.image || recipe.strMealThumb) { %>
-        <img src="<%= recipe.image || recipe.strMealThumb %>" 
-             class="card-img-top" 
+        <img src="<%= recipe.image || recipe.strMealThumb %>"
+             class="card-img-top"
              alt="<%= recipe.title || recipe.strMeal %>">
       <% } %>
-      
+
       <div class="card-body">
+
+        <!-- Recipe Title -->
         <h5 class="card-title"><%= recipe.title || recipe.strMeal %></h5>
-        
+
+        <!-- Servings Information -->
         <% if (recipe.servings) { %>
           <p class="text-muted">Recipe makes: <%= recipe.servings %> servings</p>
         <% } %>
 
+        <!--
+          /**
+           * @form Portion Selection Form
+           * @route POST /tracker/add
+           * @description Submits the selected portion size and recipe metadata.
+           */
+        -->
         <form method="POST" action="/tracker/add">
           <input type="hidden" name="recipeId" value="<%= recipeId %>">
           <input type="hidden" name="recipeData" value='<%= JSON.stringify(recipe) %>'>
-          
+          <input type="hidden" name="recipeTitle" value="<%= recipe.title || recipe.strMeal %>">
+
           <div class="mb-3">
             <label for="servings" class="form-label">How many servings did you eat?</label>
-            <input 
-              type="number" 
-              class="form-control" 
-              id="servings" 
-              name="servings" 
-              min="0.25" 
-              max="10" 
-              step="0.25" 
-              value="1" 
-              required>
-            <div class="form-text">Enter portion size (e.g., 0.5 for half serving, 2 for double)</div>
+            <input type="number"
+                   class="form-control"
+                   id="servings"
+                   name="servings"
+                   min="0.25"
+                   max="10"
+                   step="0.25"
+                   value="1"
+                   required>
+            <div class="form-text">Example: 0.5 = half serving, 2 = double serving</div>
           </div>
 
           <div class="d-flex gap-2">
@@ -48,6 +77,7 @@
             <a href="/recipes" class="btn btn-outline-secondary">Cancel</a>
           </div>
         </form>
+
       </div>
     </div>
   </div>
