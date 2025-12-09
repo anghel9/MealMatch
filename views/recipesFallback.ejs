@@ -94,14 +94,10 @@
                     </form>
 
                     
-                    <form method="POST" action="/tracker/add" class="d-inline">
-                      <input type="hidden" name="recipeId" value="<%= meal.idMeal %>">
-                      <input type="hidden" name="recipeData"
-                             value='<%= JSON.stringify(meal) %>'>
-                      <button type="submit" class="btn btn-sm btn-outline-secondary">
-                        Add to Tracker
-                      </button>
-                    </form>
+                    <a href="/tracker/portion/<%= meal.idMeal %>?data=<%= encodeURIComponent(JSON.stringify(meal)) %>" 
+                      class="btn btn-sm btn-outline-secondary">
+                      Add to Tracker
+                    </a>
                   <% } else { %>
                     <span class="text-muted small">
                       <a href="/login">Log in</a> to save or track this recipe.

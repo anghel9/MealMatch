@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head.ejs') %>
+  <title>Add Portion Size</title>
+</head>
+<body>
+  <%- include('partials/nav.ejs') %>
+
+  <div class="container mt-5" style="max-width: 600px;">
+    <h2 class="mb-4">Add to Tracker</h2>
+    
+    <div class="card shadow-sm">
+      <% if (recipe.image || recipe.strMealThumb) { %>
+        <img src="<%= recipe.image || recipe.strMealThumb %>" 
+             class="card-img-top" 
+             alt="<%= recipe.title || recipe.strMeal %>">
+      <% } %>
+      
+      <div class="card-body">
+        <h5 class="card-title"><%= recipe.title || recipe.strMeal %></h5>
+        
+        <% if (recipe.servings) { %>
+          <p class="text-muted">Recipe makes: <%= recipe.servings %> servings</p>
+        <% } %>
+
+        <form method="POST" action="/tracker/add">
+          <input type="hidden" name="recipeId" value="<%= recipeId %>">
+          <input type="hidden" name="recipeData" value='<%= JSON.stringify(recipe) %>'>
+          
+          <div class="mb-3">
+            <label for="servings" class="form-label">How many servings did you eat?</label>
+            <input 
+              type="number" 
+              class="form-control" 
+              id="servings" 
+              name="servings" 
+              min="0.25" 
+              max="10" 
+              step="0.25" 
+              value="1" 
+              required>
+            <div class="form-text">Enter portion size (e.g., 0.5 for half serving, 2 for double)</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">Add to Tracker</button>
+            <a href="/recipes" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/foot.ejs') %>
+</body>
+</html>
