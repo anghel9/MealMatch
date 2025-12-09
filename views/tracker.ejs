@@ -36,12 +36,13 @@
       </div>
     <% } %>
 
+ 
     <%
       let t;
       let list;
 
       if (!isAuthenticated) {
-        // GUEST: sample totals + sample entries
+        // GUEST SAMPLE DATA
         t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
         list = [
           { meal: 'Greek Yogurt + Berries',       calories: 220, protein: 20, carbs: 28, fat: 4 },
@@ -51,17 +52,13 @@
           { meal: 'Snack: Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
         ];
       } else {
-        // LOGGED IN: use real data if provided, otherwise start empty / zeros
-        t = (typeof totals !== 'undefined' && totals)
-            ? totals
-            : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-
-        list = (typeof entries !== 'undefined' && entries && entries.length)
-            ? entries
-            : [];
+        // LOGGED IN USER DATA
+        t = totals ? totals : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        list = entries && entries.length ? entries : [];
       }
     %>
 
+  
     <div class="row g-3 mb-3">
       <div class="col-md-3">
         <div class="card p-3 text-center shadow-sm">
@@ -89,6 +86,9 @@
       </div>
     </div>
 
+    <!-- -------------------------------
+         TRACKER TABLE
+    -------------------------------- -->
     <div class="card shadow-sm">
       <div class="table-responsive">
         <table class="table table-striped mb-0">
@@ -99,16 +99,23 @@
               <th>Protein (g)</th>
               <th>Carbs (g)</th>
               <th>Fat (g)</th>
+
+              <% if (isAuthenticated) { %>
+                <th style="width: 110px;">Actions</th>
+              <% } %>
             </tr>
           </thead>
           <tbody>
+
             <% if (list.length === 0 && isAuthenticated) { %>
               <tr>
-                <td colspan="5" class="text-center text-muted">
+                <td colspan="6" class="text-center text-muted">
                   No entries yet. Add a meal from the recipes page to start tracking.
                 </td>
               </tr>
+
             <% } else { %>
+
               <% list.forEach(e => { %>
                 <tr>
                   <td>
@@ -120,9 +127,28 @@
                   <td><%= e.protein %></td>
                   <td><%= e.carbs %></td>
                   <td><%= e.fat %></td>
+
+                  <% if (isAuthenticated) { %>
+                    <td>
+                      <% if (e.id) { %>
+                        <form action="/tracker/<%= e.id %>/delete" 
+                              method="POST"
+                              onsubmit="return confirm('Delete this entry?');">
+                          <button class="btn btn-sm btn-outline-danger w-100">
+                            Delete
+                          </button>
+                        </form>
+                      <% } else { %>
+                        <span class="text-muted">—</span>
+                      <% } %>
+                    </td>
+                  <% } %>
+
                 </tr>
               <% }) %>
+
             <% } %>
+
           </tbody>
         </table>
       </div>

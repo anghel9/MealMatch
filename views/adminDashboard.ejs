@@ -2,26 +2,61 @@
 <html lang="en">
 <head>
   <%- include('partials/head.ejs') %>
+
+  <!--
+    /**
+     * @file Admin Dashboard View
+     * @description Displays admin tools, user counts, and user management table.
+     *              Only accessible to authenticated admin users.
+     * 
+     * @dependencies 
+     *  - Bootstrap 5
+     *  - Bootstrap Icons
+     *  - EJS variables injected from server:
+     *      @var {Array} users – List of all MealMatch users
+     *      @var {Boolean} isAuthenticated – Logged-in state
+     *      @var {Boolean} isAdmin – Admin privilege flag
+     */
+  -->
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-  <!-- Match other pages like login/create -->
   <link href="/public/css/styles.css" rel="stylesheet">
   <title>Admin Dashboard | MealMatch</title>
 </head>
 
 <body>
+  <!--
+    /**
+     * @section Navigation Bar
+     * Loads the main site navigation (conditionally shows admin controls).
+     */
+  -->
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-5" style="max-width: 1200px;">
+
+    <!--
+      /**
+       * @section Dashboard Header
+       * Shows the title and introductory statistics.
+       */
+    -->
     <h2 class="text-center mb-4">MealMatch Admin Dashboard</h2>
 
-    <!-- Quick info -->
     <div class="row g-3 mb-4">
+
+      <!--
+        /**
+         * @component Total Users Card
+         * @description Shows the total number of registered users.
+         */
+      -->
       <div class="col-md-6">
         <div class="card shadow-sm p-3 h-100">
           <div class="d-flex align-items-center">
-            <i class="bi bi-people-fill fs-1 me-3"></i>
+            <i class="bi bi-person-plus-fill fs-1 me-3"></i>
             <div>
               <h5 class="mb-0">Total Users</h5>
               <p class="fs-4 mb-0">
@@ -32,7 +67,12 @@
         </div>
       </div>
 
-      <!-- Placeholder card if you want to add something later (tracker stats, etc.) -->
+      <!--
+        /**
+         * @component Admin Tools Card
+         * @description Placeholder for administrative tools and statistics.
+         */
+      -->
       <div class="col-md-6">
         <div class="card shadow-sm p-3 h-100">
           <div class="d-flex align-items-center">
@@ -46,14 +86,22 @@
           </div>
         </div>
       </div>
+
     </div>
 
-    <!-- USERS MANAGEMENT -->
     <div class="row g-4">
-      <!-- Create user form -->
+
+      <!--
+        /**
+         * @section User Creation Form
+         * @description Allows admins to manually create new users.
+         * @route POST /admin/users/create
+         */
+      -->
       <div class="col-lg-4">
         <div class="card shadow-sm p-3">
           <h4 class="h5 mb-3">Create New User</h4>
+
           <form method="post" action="/admin/users/create">
             <div class="mb-3 text-start">
               <label for="username" class="form-label">Username</label>
@@ -109,9 +157,16 @@
         </div>
       </div>
 
-      <!-- Users table -->
+      <!--
+        /**
+         * @section User List Table
+         * @description Displays all registered users with delete controls.
+         * @route POST /admin/users/:id/delete
+         */
+      -->
       <div class="col-lg-8">
         <div class="card shadow-sm p-3">
+
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="h5 mb-0">All Users</h4>
             <small class="text-muted">View and delete users</small>
@@ -128,13 +183,27 @@
                   <th scope="col" class="text-end">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 <% if (users && users.length) { %>
                   <% users.forEach(user => { %>
                     <tr>
+
+                      <!--
+                        /**
+                         * @field userID
+                         * Unique numeric ID for each user in MealMatch.
+                         */
+                      -->
                       <td><%= user.userID %></td>
+
+                      <!-- @field username -->
                       <td><%= user.username %></td>
+
+                      <!-- @field email -->
                       <td><%= user.email %></td>
+
+                      <!-- @field isAdmin -->
                       <td>
                         <% if (user.isAdmin) { %>
                           <span class="badge bg-success">Yes</span>
@@ -142,6 +211,13 @@
                           <span class="badge bg-secondary">No</span>
                         <% } %>
                       </td>
+
+                      <!--
+                        /**
+                         * @action Delete User
+                         * @description Submits a form to delete the selected user.
+                         */
+                      -->
                       <td class="text-end">
                         <form
                           method="post"
@@ -154,6 +230,7 @@
                           </button>
                         </form>
                       </td>
+
                     </tr>
                   <% }) %>
                 <% } else { %>
@@ -164,17 +241,19 @@
                   </tr>
                 <% } %>
               </tbody>
+
             </table>
           </div>
         </div>
       </div>
-    </div> <!-- /row -->
-  </div> <!-- /container -->
+
+    </div> 
+  </div> 
 
   <%- include('partials/foot.ejs') %>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
-    crossorigin="anonymous"></script>
+    integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous">
+  </script>
 </body>
 </html>

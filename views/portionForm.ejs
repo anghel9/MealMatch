@@ -27,7 +27,8 @@
         <form method="POST" action="/tracker/add">
           <input type="hidden" name="recipeId" value="<%= recipeId %>">
           <input type="hidden" name="recipeData" value='<%= JSON.stringify(recipe) %>'>
-          
+          <input type="hidden" name="recipeTitle" value="<%= recipe.title || recipe.strMeal %>">
+
           <div class="mb-3">
             <label for="servings" class="form-label">How many servings did you eat?</label>
             <input 
