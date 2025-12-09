@@ -4,12 +4,12 @@ import mysql from "mysql2/promise";
 import session from "express-session";
 import bcrypt from "bcrypt";
 // Gemini import left out for now since tracker teammate can add it later
-// import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 const apiKey = process.env.API_KEY;
 const app = express();
 
-// const ai = new GoogleGenAI(process.env.GEMINI_API_KEY); // unused for now
+const ai = new GoogleGenAI(process.env.GEMINI_API_KEY); 
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
@@ -71,6 +71,30 @@ async function upsertFoodRecipe(recipeId, title) {
        isFavorite   = VALUES(isFavorite)`,
     [id, title, ingredients, instructions, isFavorite]
   );
+}
+
+async function extractNutrition(recipeData) {
+   const prompt = 
+   `Analyze this recipe and return ONLY a JSON object with nutritional information per serving.
+   Recipe: ${JSON.stringify(recipeData)}
+   
+   Return format (numbers only, no units):
+   {
+      "calories": number,
+      "protein": number,
+      "fat": number,
+      "carbs": number
+   }
+   `;
+
+   const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp",
+      contents: prompt,
+   });
+
+   // Parse the JSON response
+   const jsonText = response.text.replace(/```json\n?|\n?```/g, '').trim();
+   return JSON.parse(jsonText);
 }
 
 
