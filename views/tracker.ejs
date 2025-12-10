@@ -1,253 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <%- include('partials/head.ejs') %>
-  <title>Tracker</title>
+    <title>Tracker</title>
 </head>
+
 <body>
   <%- include('partials/nav.ejs') %>
 
-  <div class="container mt-4" style="max-width: 960px;">
+    <div class="container mt-4" style="max-width: 960px;">
 
-    <!-- Header + Add button -->
-    <div class="d-flex justify-content-between align-items-center mb-1">
-      <h2 class="mb-0">Daily Tracker</h2>
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="mb-0">Daily Tracker</h2>
 
-      <% if (isAuthenticated) { %>
-        <button
-          type="button"
-          class="btn btn-sm btn-mm-primary"
-          data-bs-toggle="collapse"
-          data-bs-target="#trackerFormCard"
-        >
-          <%= (typeof editingEntry !== 'undefined' && editingEntry) ? 'Edit entry' : 'Add entry' %>
-        </button>
-      <% } %>
-    </div>
-
-    <% if (!isAuthenticated) { %>
-      <p class="text-muted mb-2">Sample dashboard (placeholder).</p>
-    <% } else { %>
-      <p class="text-muted mb-2">View your daily macro summary.</p>
-    <% } %>
-
-    <%
-      let t;
-      let list;
-
-      if (!isAuthenticated) {
-        t = { calories: 1870, protein: 122, carbs: 210, fat: 62 };
-        list = [
-          { meal: 'Greek Yogurt + Berries', calories: 220, protein: 20, carbs: 28, fat: 4 },
-          { meal: 'Grilled Chicken Salad',  calories: 480, protein: 42, carbs: 35, fat: 18 },
-          { meal: 'Salmon + Rice',         calories: 650, protein: 46, carbs: 55, fat: 22 },
-          { meal: 'Protein Shake',         calories: 220, protein: 30, carbs: 8,  fat: 5 },
-          { meal: 'Apple + Peanut Butter', calories: 300, protein: 4,  carbs: 42, fat: 14 }
-        ];
-      } else {
-        t = totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
-        list = Array.isArray(entries) && entries.length ? entries : [];
-      }
-
-      const isEditing = (typeof editingEntry !== 'undefined' && editingEntry);
-    %>
-
-    <!-- Inline Add/Edit Card -->
-    <% if (isAuthenticated) { %>
-      <div id="trackerFormCard" class="collapse <%= isEditing ? 'show' : '' %> mb-3">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title mb-3">
-              <%= isEditing ? 'Edit entry' : 'Add entry manually' %>
-            </h5>
-
-            <%
-              const formAction = isEditing
-                ? `/tracker/${editingEntry.id}/edit`
-                : '/tracker/add-manual';
-
-              const initialMeal     = isEditing ? (editingEntry.recipeTitle || editingEntry.meal || '') : '';
-              const initialCalories = isEditing ? editingEntry.calories : '';
-              const initialProtein  = isEditing ? editingEntry.protein  : '';
-              const initialCarbs    = isEditing ? editingEntry.carbs    : '';
-              const initialFat      = isEditing ? editingEntry.fat      : '';
-            %>
-
-            <form method="POST" action="<%= formAction %>">
-              <div class="row g-2">
-                <div class="col-md-4">
-                  <label class="form-label">Meal name</label>
-                  <input
-                    type="text"
-                    name="meal"
-                    class="form-control"
-                    placeholder="e.g. Chicken salad"
-                    value="<%= initialMeal %>"
-                    required
-                  >
-                </div>
-
-                <div class="col-md-2">
-                  <label class="form-label">Calories</label>
-                  <input
-                    type="number"
-                    name="calories"
-                    class="form-control"
-                    min="0"
-                    value="<%= initialCalories %>"
-                    required
-                  >
-                </div>
-
-                <div class="col-md-2">
-                  <label class="form-label">Protein (g)</label>
-                  <input
-                    type="number"
-                    name="protein"
-                    class="form-control"
-                    min="0"
-                    step="0.1"
-                    value="<%= initialProtein %>"
-                  >
-                </div>
-
-                <div class="col-md-2">
-                  <label class="form-label">Carbs (g)</label>
-                  <input
-                    type="number"
-                    name="carbs"
-                    class="form-control"
-                    min="0"
-                    step="0.1"
-                    value="<%= initialCarbs %>"
-                  >
-                </div>
-
-                <div class="col-md-2">
-                  <label class="form-label">Fat (g)</label>
-                  <input
-                    type="number"
-                    name="fat"
-                    class="form-control"
-                    min="0"
-                    step="0.1"
-                    value="<%= initialFat %>"
-                  >
-                </div>
-              </div>
-
-              <div class="mt-3 d-flex justify-content-between">
-                <button type="submit" class="btn btn-success">
-                  <%= isEditing ? 'Save changes' : 'Add entry' %>
-                </button>
-
-                <% if (isEditing) { %>
-                  <a href="/tracker" class="btn btn-outline-secondary">
-                    Cancel edit
-                  </a>
-                <% } %>
-              </div>
-            </form>
-          </div>
-        </div>
+        <% if (isAuthenticated) { %>
+          <button type="button" class="btn btn-sm btn-mm-primary" data-bs-toggle="collapse"
+            data-bs-target="#trackerFormCard">
+            <%= (typeof editingEntry !=='undefined' && editingEntry) ? 'Edit entry' : 'Add entry' %>
+          </button>
+          <% } %>
       </div>
-    <% } %>
 
-    <!-- Macro Cards -->
-    <div class="row g-3 mb-3">
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Calories</div>
-          <h4><%= t.calories %></h4>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Protein</div>
-          <h4><%= t.protein %> g</h4>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Carbs</div>
-          <h4><%= t.carbs %> g</h4>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card p-3 text-center shadow-sm">
-          <div>Fat</div>
-          <h4><%= t.fat %> g</h4>
-        </div>
-      </div>
-    </div>
+      <% if (!isAuthenticated) { %>
+        <p class="text-muted mb-2">Sample dashboard (placeholder).</p>
+        <% } else { %>
+          <p class="text-muted mb-2">View your daily macro summary.</p>
+          <% } %>
 
-    <!-- Tracker Table -->
-    <div class="card shadow-sm">
-      <div class="table-responsive">
-        <table class="table table-striped mb-0">
-          <thead>
-            <tr>
-              <th>Meal</th>
-              <th>Calories</th>
-              <th>Protein (g)</th>
-              <th>Carbs (g)</th>
-              <th>Fat (g)</th>
+            <% let t; let list; if (!isAuthenticated) { t={ calories: 1870, protein: 122, carbs: 210, fat: 62 }; list=[
+              { meal: 'Greek Yogurt + Berries' , calories: 220, protein: 20, carbs: 28, fat: 4 }, {
+              meal: 'Grilled Chicken Salad' , calories: 480, protein: 42, carbs: 35, fat: 18 }, { meal: 'Salmon + Rice'
+              , calories: 650, protein: 46, carbs: 55, fat: 22 }, { meal: 'Protein Shake' , calories: 220, protein: 30,
+              carbs: 8, fat: 5 }, { meal: 'Apple + Peanut Butter' , calories: 300, protein: 4, carbs: 42, fat: 14 } ]; }
+              else { t=totals || { calories: 0, protein: 0, carbs: 0, fat: 0 }; list=Array.isArray(entries) &&
+              entries.length ? entries : []; } const isEditing=(typeof editingEntry !=='undefined' && editingEntry); %>
+
+
               <% if (isAuthenticated) { %>
-                <th style="width:160px;">Actions</th>
-              <% } %>
-            </tr>
-          </thead>
-          <tbody>
-            <% if (isAuthenticated && list.length === 0) { %>
-              <tr>
-                <td colspan="6" class="text-center text-muted">
-                  No entries yet. Add a meal from recipes or use “Add entry”.
-                </td>
-              </tr>
-            <% } else { %>
-              <% list.forEach(e => { %>
-                <tr>
-                  <td><%= e.meal || e.recipeTitle || `Recipe #${e.recipeID}` %></td>
-                  <td><%= e.calories %></td>
-                  <td><%= e.protein %></td>
-                  <td><%= e.carbs %></td>
-                  <td><%= e.fat %></td>
+                <div id="trackerFormCard" class="collapse <%= isEditing ? 'show' : '' %> mb-3">
+                  <div class="card shadow-sm">
+                    <div class="card-body">
+                      <h5 class="card-title mb-3">
+                        <%= isEditing ? 'Edit entry' : 'Add entry manually' %>
+                      </h5>
 
-                  <% if (isAuthenticated) { %>
-                    <td>
-                      <% if (e.id) { %>
-                        <div class="d-flex gap-1">
-                          <!-- Edit in-place -->
-                          <a href="/tracker?editId=<%= e.id %>"
-                             class="btn btn-sm btn-outline-secondary">
-                            Edit
-                          </a>
+                      <% const formAction=isEditing ? `/tracker/${editingEntry.id}/edit` : '/tracker/add-manual' ; const
+                        initialMeal=isEditing ? (editingEntry.recipeTitle || editingEntry.meal || '' ) : '' ; const
+                        initialCalories=isEditing ? editingEntry.calories : '' ; const initialProtein=isEditing ?
+                        editingEntry.protein : '' ; const initialCarbs=isEditing ? editingEntry.carbs : '' ; const
+                        initialFat=isEditing ? editingEntry.fat : '' ; %>
 
-                          <!-- Delete -->
-                          <form method="POST"
-                                action="/tracker/<%= e.id %>/delete"
-                                onsubmit="return confirm('Delete this entry?');"
-                                class="m-0">
-                            <button class="btn btn-sm btn-outline-danger">
-                              Delete
+                        <form method="POST" action="<%= formAction %>">
+                          <div class="row g-2">
+                            <div class="col-md-4">
+                              <label class="form-label">Meal name</label>
+                              <input type="text" name="meal" class="form-control" placeholder="e.g. Chicken salad"
+                                value="<%= initialMeal %>" required>
+                            </div>
+
+                            <div class="col-md-2">
+                              <label class="form-label">Calories</label>
+                              <input type="number" name="calories" class="form-control" min="0"
+                                value="<%= initialCalories %>" required>
+                            </div>
+
+                            <div class="col-md-2">
+                              <label class="form-label">Protein (g)</label>
+                              <input type="number" name="protein" class="form-control" min="0" step="0.1"
+                                value="<%= initialProtein %>">
+                            </div>
+
+                            <div class="col-md-2">
+                              <label class="form-label">Carbs (g)</label>
+                              <input type="number" name="carbs" class="form-control" min="0" step="0.1"
+                                value="<%= initialCarbs %>">
+                            </div>
+
+                            <div class="col-md-2">
+                              <label class="form-label">Fat (g)</label>
+                              <input type="number" name="fat" class="form-control" min="0" step="0.1"
+                                value="<%= initialFat %>">
+                            </div>
+                          </div>
+
+                          <div class="mt-3 d-flex justify-content-between">
+                            <button type="submit" class="btn btn-success">
+                              <%= isEditing ? 'Save changes' : 'Add entry' %>
                             </button>
-                          </form>
-                        </div>
-                      <% } else { %>
-                        <span class="text-muted">—</span>
-                      <% } %>
-                    </td>
-                  <% } %>
-                </tr>
-              <% }) %>
-            <% } %>
-          </tbody>
-        </table>
-      </div>
+
+                            <% if (isEditing) { %>
+                              <a href="/tracker" class="btn btn-outline-secondary">
+                                Cancel edit
+                              </a>
+                              <% } %>
+                          </div>
+                        </form>
+                    </div>
+                  </div>
+                </div>
+                <% } %>
+
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                      <div class="card p-3 text-center shadow-sm">
+                        <div>Calories</div>
+                        <h4>
+                          <%= t.calories %>
+                        </h4>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="card p-3 text-center shadow-sm">
+                        <div>Protein</div>
+                        <h4>
+                          <%= t.protein %> g
+                        </h4>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="card p-3 text-center shadow-sm">
+                        <div>Carbs</div>
+                        <h4>
+                          <%= t.carbs %> g
+                        </h4>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="card p-3 text-center shadow-sm">
+                        <div>Fat</div>
+                        <h4>
+                          <%= t.fat %> g
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+
+                  
+                  <div class="card shadow-sm">
+                    <div class="table-responsive">
+                      <table class="table table-striped mb-0">
+                        <thead>
+                          <tr>
+                            <th>Meal</th>
+                            <th>Calories</th>
+                            <th>Protein (g)</th>
+                            <th>Carbs (g)</th>
+                            <th>Fat (g)</th>
+                            <% if (isAuthenticated) { %>
+                              <th style="width:160px;">Actions</th>
+                              <% } %>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% if (isAuthenticated && list.length===0) { %>
+                            <tr>
+                              <td colspan="6" class="text-center text-muted">
+                                No entries yet. Add a meal from recipes or use “Add entry”.
+                              </td>
+                            </tr>
+                            <% } else { %>
+                              <% list.forEach(e=> { %>
+                                <tr>
+                                  <td>
+                                    <%= e.meal || e.recipeTitle || `Recipe #${e.recipeID}` %>
+                                  </td>
+                                  <td>
+                                    <%= e.calories %>
+                                  </td>
+                                  <td>
+                                    <%= e.protein %>
+                                  </td>
+                                  <td>
+                                    <%= e.carbs %>
+                                  </td>
+                                  <td>
+                                    <%= e.fat %>
+                                  </td>
+
+                                  <% if (isAuthenticated) { %>
+                                    <td>
+                                      <% if (e.id) { %>
+                                        <div class="d-flex flex-column gap-1">
+
+                                         
+                                          <a href="/tracker?editId=<%= e.id %>"
+                                            class="btn btn-sm btn-outline-primary w-100">
+                                            Edit
+                                          </a>
+
+
+                                          
+                                          <form method="POST" action="/tracker/<%= e.id %>/favorite">
+                                            <button class="btn btn-sm btn-outline-warning w-100">
+                                              Favorite
+                                            </button>
+                                          </form>
+
+                                          <!-- Delete entry -->
+                                          <form method="POST" action="/tracker/<%= e.id %>/delete"
+                                            onsubmit="return confirm('Delete this entry?');">
+                                            <button class="btn btn-sm btn-outline-danger w-100">
+                                              Delete
+                                            </button>
+                                          </form>
+
+                                        </div>
+                                        <% } else { %>
+                                          <span class="text-muted">—</span>
+                                          <% } %>
+                                    </td>
+                                    <% } %>
+
+                                </tr>
+                                <% }) %>
+                                  <% } %>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
     </div>
 
-  </div>
-
-  <%- include('partials/foot.ejs') %>
+    <%- include('partials/foot.ejs') %>
 </body>
+
 </html>

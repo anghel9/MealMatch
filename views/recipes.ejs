@@ -8,7 +8,7 @@
      * @title Search Recipes — Spoonacular Version
      * @description Displays recipes returned by Spoonacular API, allows sorting,
      *              adding to favorites, and sending meals to the tracker.
-     *
+     * edit we are not using the Spoontacular API anymore lol
      * @variables
      *  @var {String} keyword - Search term entered by the user
      *  @var {Array} meals - Spoonacular recipe details
@@ -64,7 +64,7 @@
 
     <% } else { %>
 
-      <!-- Recipe Cards Loop -->
+
       <div class="row row-cols-1 row-cols-md-3 g-4">
         <% meals.forEach(meal=> { %>
         <div class="col">
@@ -90,7 +90,7 @@
 
               <div class="mt-auto d-flex flex-wrap gap-2">
 
-                <!-- Recipe Source Link -->
+
                 <% if (meal.sourceUrl) { %>
                 <a href="<%= meal.sourceUrl %>"
                    target="_blank"
@@ -99,7 +99,6 @@
                 </a>
                 <% } %>
 
-                <!-- Add to favorites -->
                 <% if (isAuthenticated) { %>
                 <form method="POST" action="/favorites/add" class="d-inline">
                   <input type="hidden" name="recipeId" value="<%= meal.id %>">
@@ -110,7 +109,7 @@
                   <button class="btn btn-outline-warning btn-sm">Add to Favorite</button>
                 </form>
 
-                <!-- Add to Tracker -->
+
                 <form method="POST" action="/tracker/add" class="d-inline">
                   <input type="hidden" name="recipeId" value="<%= meal.id %>">
                   <input type="hidden" name="recipeData" value='<%= JSON.stringify(meal) %>'>

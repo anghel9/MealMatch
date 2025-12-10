@@ -21,7 +21,7 @@
 </head>
 
 <body>
-  <!-- Navigation -->
+
   <%- include('partials/nav.ejs') %>
 
   <div class="container mt-5" style="max-width: 600px;">
@@ -29,7 +29,7 @@
 
     <div class="card shadow-sm">
 
-      <!-- Recipe Image -->
+]
       <% if (recipe.image || recipe.strMealThumb) { %>
         <img src="<%= recipe.image || recipe.strMealThumb %>"
              class="card-img-top"
@@ -37,8 +37,6 @@
       <% } %>
 
       <div class="card-body">
-
-        <!-- Recipe Title -->
         <h5 class="card-title"><%= recipe.title || recipe.strMeal %></h5>
 
         <!-- Servings Information -->
@@ -46,13 +44,6 @@
           <p class="text-muted">Recipe makes: <%= recipe.servings %> servings</p>
         <% } %>
 
-        <!--
-          /**
-           * @form Portion Selection Form
-           * @route POST /tracker/add
-           * @description Submits the selected portion size and recipe metadata.
-           */
-        -->
         <form method="POST" action="/tracker/add">
           <input type="hidden" name="recipeId" value="<%= recipeId %>">
           <input type="hidden" name="recipeData" value='<%= JSON.stringify(recipe) %>'>

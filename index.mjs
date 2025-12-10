@@ -32,10 +32,6 @@ const pool = mysql.createPool({
 });
 
 app.set("trust proxy", 1);
-
-/**
- * Session middleware configuration
- */
 app.use(
   session({
     secret: "mealmatch secret",
@@ -44,9 +40,7 @@ app.use(
   })
 );
 
-/**
- * Inject common template variables for all views
- */
+
 app.use((req, res, next) => {
   res.locals.isAuthenticated = !!req.session.isAuthenticated;
   res.locals.userName = req.session.userName || null;
@@ -155,9 +149,7 @@ Return ONLY this JSON format:
  *                        BASIC ROUTES
  * ============================================================*/
 
-/**
- * Home page
- */
+
 app.get("/", async (req, res) => {
   // Guest: just render with no snapshotTotals (home.ejs will fall back to sample)
   if (!req.session.isAuthenticated) {
@@ -175,7 +167,7 @@ app.get("/", async (req, res) => {
       [userId]
     );
 
-    const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+    const today = new Date().toISOString().slice(0, 10); 
 
     const todayRows = rows.filter((r) => {
       const d =
@@ -578,9 +570,7 @@ app.post("/favorites/remove", requireLogin, async (req, res) => {
  *                        TRACKER ROUTES
  * ============================================================*/
 
-/**
- * Tracker page — shows today's logged meals, with inline add/edit support
- */
+
 app.get("/tracker", async (req, res) => {
   if (!req.session.isAuthenticated) {
     // guest → sample view (handled in EJS using totals=null, entries=null, editingEntry=null)
@@ -639,9 +629,7 @@ app.get("/tracker", async (req, res) => {
   }
 });
 
-/**
- * Manual add from the inline card (user types their own meal + macros)
- */
+
 app.post("/tracker/add-manual", requireLogin, async (req, res) => {
   const userId = req.session.userId;
   const { meal, calories, protein, carbs, fat } = req.body;
@@ -668,9 +656,7 @@ app.post("/tracker/add-manual", requireLogin, async (req, res) => {
   }
 });
 
-/**
- * Save edits to an existing tracker entry (inline edit card)
- */
+
 app.post("/tracker/:id/edit", requireLogin, async (req, res) => {
   const { id } = req.params;
   const userId = req.session.userId;
@@ -703,9 +689,7 @@ app.post("/tracker/:id/edit", requireLogin, async (req, res) => {
   }
 });
 
-/**
- * Delete a tracked meal
- */
+
 app.post("/tracker/:id/delete", requireLogin, async (req, res) => {
   const { id } = req.params;
   const userId = req.session.userId;
@@ -719,9 +703,7 @@ app.post("/tracker/:id/delete", requireLogin, async (req, res) => {
   }
 });
 
-/**
- * Portion selection form (Anghel’s flow, unchanged)
- */
+
 app.get("/tracker/portion/:recipeId", requireLogin, async (req, res) => {
   const { recipeId } = req.params;
   const recipeData = req.query.data;
@@ -737,9 +719,71 @@ app.get("/tracker/portion/:recipeId", requireLogin, async (req, res) => {
   }
 });
 
-/**
- * Add meal from API to tracker (Gemini-based nutrition)
- */
+app.post("/tracker/:id/favorite", requireLogin, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.session.userId;
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, recipeID, recipeTitle, calories, protein
+         FROM tracker
+        WHERE id = ? AND userID = ?`,
+      [id, userId]
+    );
+
+    if (!rows.length) {
+      // Entry not found or not owned by this user
+      return res.redirect("/tracker");
+    }
+
+    const entry = rows[0];
+
+    // If entry came from an API recipe, reuse that recipeID.
+    // If it is a manual entry (recipeID is null), synthesize a unique ID
+    // well outside typical API ranges to avoid collisions.
+    let recipeId = entry.recipeID;
+    const title =
+      entry.recipeTitle ||
+      (entry.recipeID ? `Recipe #${entry.recipeID}` : `Custom meal #${entry.id}`);
+
+    if (!recipeId) {
+      recipeId = 1000000 + entry.id; // quick & dirty synthetic ID
+    }
+
+    // Ensure the recipe exists in foodRecipes to satisfy FK
+    await upsertFoodRecipe(recipeId, title);
+
+    const cal = entry.calories != null ? Number(entry.calories) : null;
+    const prot = entry.protein != null ? Number(entry.protein) : null;
+
+    await pool.query(
+      `INSERT INTO userFavorites 
+         (userID, recipeID, title, imageUrl, calories, protein, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE
+         title    = VALUES(title),
+         imageUrl = VALUES(imageUrl),
+         calories = VALUES(calories),
+         protein  = VALUES(protein)`,
+      [
+        userId,
+        Number(recipeId),
+        title,
+        null,     // no image for custom/manual meals 
+        cal,
+        prot,
+      ]
+    );
+
+    res.redirect("/favorites");
+  } catch (err) {
+    console.error("Tracker favorite error:", err);
+    res.status(500).send("Failed to favorite entry");
+  }
+});
+
+
+
 app.post("/tracker/add", requireLogin, async (req, res) => {
   const { recipeId, recipeData, servings, recipeTitle } = req.body;
   const userId = req.session.userId;
@@ -781,9 +825,7 @@ app.post("/tracker/add", requireLogin, async (req, res) => {
   }
 });
 
-/**
- * DB connectivity test
- */
+
 app.get("/dbTest", async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT CURDATE()");
@@ -794,9 +836,7 @@ app.get("/dbTest", async (req, res) => {
   }
 });
 
-/**
- * Start Express server
- */
+
 app.listen(3000, () => {
   console.log("Express server running");
 });
