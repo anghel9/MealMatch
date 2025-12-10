@@ -159,8 +159,51 @@ Return ONLY this JSON format:
  * Home page
  */
 app.get("/", async (req, res) => {
-  res.render("home.ejs");
+  // Guest: just render with no snapshotTotals (home.ejs will fall back to sample)
+  if (!req.session.isAuthenticated) {
+    return res.render("home.ejs", { snapshotTotals: null });
+  }
+
+  const userId = req.session.userId;
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, recipeID, recipeTitle, calories, protein, carbs, fat, date_logged
+         FROM tracker
+        WHERE userID = ?
+        ORDER BY date_logged DESC`,
+      [userId]
+    );
+
+    const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+    const todayRows = rows.filter((r) => {
+      const d =
+        r.date_logged instanceof Date
+          ? r.date_logged.toISOString().slice(0, 10)
+          : String(r.date_logged).slice(0, 10);
+      return d === today;
+    });
+
+    const totals = todayRows.reduce(
+      (acc, r) => {
+        acc.calories += r.calories || 0;
+        acc.protein += Number(r.protein || 0);
+        acc.carbs += Number(r.carbs || 0);
+        acc.fat += Number(r.fat || 0);
+        return acc;
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    res.render("home.ejs", { snapshotTotals: totals });
+  } catch (err) {
+    console.error("Home snapshot error:", err);
+    // If something fails, fall back to sample values in the view
+    res.render("home.ejs", { snapshotTotals: null });
+  }
 });
+
 
 /* ============================================================
  *                        ADMIN ROUTES
@@ -457,6 +500,7 @@ app.get("/favorites", async (req, res) => {
     let orderBy = "title";
     let direction = "ASC";
 
+    // for some reason, the sort is implemented correctly but gemini is giving an inconsistent macros from the tracker/ in the favorites
     if (sort === "calories" || sort === "protein") {
       orderBy = sort;
       direction = "DESC";
@@ -480,6 +524,7 @@ app.get("/favorites", async (req, res) => {
 /**
  * Add to favorites
  */
+
 app.post("/favorites/add", requireLogin, async (req, res) => {
   const { recipeId, title, imageUrl, calories, protein } = req.body;
   const userId = req.session.userId;
@@ -534,21 +579,23 @@ app.post("/favorites/remove", requireLogin, async (req, res) => {
  * ============================================================*/
 
 /**
- * Tracker page — shows today's logged meals
+ * Tracker page — shows today's logged meals, with inline add/edit support
  */
 app.get("/tracker", async (req, res) => {
   if (!req.session.isAuthenticated) {
-    return res.render("tracker.ejs", { totals: null, entries: null });
+    // guest → sample view (handled in EJS using totals=null, entries=null, editingEntry=null)
+    return res.render("tracker.ejs", { totals: null, entries: null, editingEntry: null });
   }
 
   const userId = req.session.userId;
+  const editId = req.query.editId ? Number(req.query.editId) : null;
 
   try {
     const [rows] = await pool.query(
       `SELECT id, recipeID, recipeTitle, calories, protein, carbs, fat, date_logged
-       FROM tracker
-       WHERE userID = ?
-       ORDER BY date_logged DESC`,
+         FROM tracker
+        WHERE userID = ?
+        ORDER BY date_logged DESC`,
       [userId]
     );
 
@@ -563,25 +610,29 @@ app.get("/tracker", async (req, res) => {
     });
 
     const totals = todayRows.reduce(
-      (acc, r) => ({
-        calories: acc.calories + (r.calories || 0),
-        protein: acc.protein + Number(r.protein || 0),
-        carbs: acc.carbs + Number(r.carbs || 0),
-        fat: acc.fat + Number(r.fat || 0),
-      }),
+      (acc, r) => {
+        acc.calories += r.calories || 0;
+        acc.protein += Number(r.protein || 0);
+        acc.carbs += Number(r.carbs || 0);
+        acc.fat += Number(r.fat || 0);
+        return acc;
+      },
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
 
     const entries = todayRows.map((r) => ({
       id: r.id,
-      meal: r.recipeTitle || `Recipe #${r.recipeID}`,
+      recipeID: r.recipeID,
+      recipeTitle: r.recipeTitle,
       calories: r.calories,
       protein: Number(r.protein || 0),
       carbs: Number(r.carbs || 0),
       fat: Number(r.fat || 0),
     }));
 
-    res.render("tracker.ejs", { totals, entries });
+    const editingEntry = editId ? entries.find((e) => e.id === editId) || null : null;
+
+    res.render("tracker.ejs", { totals, entries, editingEntry });
   } catch (err) {
     console.error("Tracker view error:", err);
     res.status(500).send("Failed to load tracker");
@@ -589,7 +640,87 @@ app.get("/tracker", async (req, res) => {
 });
 
 /**
- * Portion selection form
+ * Manual add from the inline card (user types their own meal + macros)
+ */
+app.post("/tracker/add-manual", requireLogin, async (req, res) => {
+  const userId = req.session.userId;
+  const { meal, calories, protein, carbs, fat } = req.body;
+
+  try {
+    await pool.query(
+      `INSERT INTO tracker 
+         (userID, recipeID, recipeTitle, calories, protein, carbs, fat, date_logged)
+       VALUES (?, NULL, ?, ?, ?, ?, ?, CURDATE())`,
+      [
+        userId,
+        meal || "Meal",
+        calories ? Number(calories) : 0,
+        protein ? Number(protein) : 0,
+        carbs ? Number(carbs) : 0,
+        fat ? Number(fat) : 0,
+      ]
+    );
+
+    res.redirect("/tracker");
+  } catch (err) {
+    console.error("Tracker manual add error:", err);
+    res.status(500).send("Failed to add entry");
+  }
+});
+
+/**
+ * Save edits to an existing tracker entry (inline edit card)
+ */
+app.post("/tracker/:id/edit", requireLogin, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.session.userId;
+  const { meal, calories, protein, carbs, fat } = req.body;
+
+  try {
+    await pool.query(
+      `UPDATE tracker
+          SET recipeTitle = ?,
+              calories    = ?,
+              protein     = ?,
+              carbs       = ?,
+              fat         = ?
+        WHERE id = ? AND userID = ?`,
+      [
+        meal || "Meal",
+        calories ? Number(calories) : 0,
+        protein ? Number(protein) : 0,
+        carbs ? Number(carbs) : 0,
+        fat ? Number(fat) : 0,
+        id,
+        userId,
+      ]
+    );
+
+    res.redirect("/tracker");
+  } catch (err) {
+    console.error("Tracker edit save error:", err);
+    res.status(500).send("Failed to update entry");
+  }
+});
+
+/**
+ * Delete a tracked meal
+ */
+app.post("/tracker/:id/delete", requireLogin, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.session.userId;
+
+  try {
+    await pool.query("DELETE FROM tracker WHERE id = ? AND userID = ?", [id, userId]);
+    res.redirect("/tracker");
+  } catch (err) {
+    console.error("Tracker delete error:", err);
+    res.status(500).send("Failed to delete entry");
+  }
+});
+
+/**
+ * Portion selection form (Anghel’s flow, unchanged)
  */
 app.get("/tracker/portion/:recipeId", requireLogin, async (req, res) => {
   const { recipeId } = req.params;
@@ -607,7 +738,7 @@ app.get("/tracker/portion/:recipeId", requireLogin, async (req, res) => {
 });
 
 /**
- * Add meal to tracker
+ * Add meal from API to tracker (Gemini-based nutrition)
  */
 app.post("/tracker/add", requireLogin, async (req, res) => {
   const { recipeId, recipeData, servings, recipeTitle } = req.body;
@@ -647,26 +778,6 @@ app.post("/tracker/add", requireLogin, async (req, res) => {
   } catch (err) {
     console.error("Tracker add error:", err);
     res.status(500).send("Failed to add to tracker");
-  }
-});
-
-/**
- * Delete a tracked meal
- */
-app.post("/tracker/:id/delete", requireLogin, async (req, res) => {
-  const entryId = req.params.id;
-  const userId = req.session.userId;
-
-  try {
-    await pool.query("DELETE FROM tracker WHERE id = ? AND userID = ?", [
-      entryId,
-      userId,
-    ]);
-
-    res.redirect("/tracker");
-  } catch (err) {
-    console.error("Tracker delete error:", err);
-    res.status(500).send("Failed to delete entry");
   }
 });
 
