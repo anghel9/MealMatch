@@ -472,6 +472,170 @@ app.post("/create", async (req, res) => {
   }
 });
 
+
+// profile stuff
+
+app.get("/profile", requireLogin, async (req, res) => {
+  const userId = req.session.userId;
+
+  try {
+    // Basic user info
+    const [[user]] = await pool.query(
+      "SELECT userID, username, email, bio, isProfilePublic, createdAt FROM usersMM WHERE userID = ?",
+      [userId]
+    );
+
+    if (!user) {
+      return res.redirect("/login");
+    }
+
+    // Total favorites
+    const [[favRow]] = await pool.query(
+      "SELECT COUNT(*) AS favoritesCount FROM userFavorites WHERE userID = ?",
+      [userId]
+    );
+
+    // Total tracker entries + today’s totals
+    const [[trackerCountRow]] = await pool.query(
+      "SELECT COUNT(*) AS entriesCount FROM tracker WHERE userID = ?",
+      [userId]
+    );
+
+    const [todayRows] = await pool.query(
+      `SELECT calories, protein, carbs, fat, date_logged 
+         FROM tracker
+        WHERE userID = ? 
+          AND date_logged = CURDATE()`,
+      [userId]
+    );
+
+    const todayTotals = todayRows.reduce(
+      (acc, r) => {
+        acc.calories += r.calories || 0;
+        acc.protein += Number(r.protein || 0);
+        acc.carbs += Number(r.carbs || 0);
+        acc.fat += Number(r.fat || 0);
+        return acc;
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    res.render("profile.ejs", {
+      profileUser: user,
+      isOwnProfile: true,
+      stats: {
+        favoritesCount: favRow.favoritesCount || 0,
+        entriesCount: trackerCountRow.entriesCount || 0,
+        todayTotals,
+      },
+    });
+  } catch (err) {
+    console.error("Profile view error:", err);
+    res.status(500).send("Failed to load profile");
+  }
+});
+
+// public profile
+app.get("/u/:username", async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const [[user]] = await pool.query(
+      "SELECT userID, username, bio, isProfilePublic, createdAt FROM usersMM WHERE username = ?",
+      [username]
+    );
+
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+
+    if (!user.isProfilePublic) {
+      return res.status(403).send("This profile is private.");
+    }
+
+    const userId = user.userID;
+
+    const [[favRow]] = await pool.query(
+      "SELECT COUNT(*) AS favoritesCount FROM userFavorites WHERE userID = ?",
+      [userId]
+    );
+
+    const [[trackerCountRow]] = await pool.query(
+      "SELECT COUNT(*) AS entriesCount FROM tracker WHERE userID = ?",
+      [userId]
+    );
+
+    // Maybe show last 3 favorites
+    const [recentFavorites] = await pool.query(
+      `SELECT title, imageUrl, calories, protein, createdAt
+         FROM userFavorites
+        WHERE userID = ?
+        ORDER BY createdAt DESC
+        LIMIT 3`,
+      [userId]
+    );
+
+    res.render("profile.ejs", {
+      profileUser: user,
+      isOwnProfile: false,
+      stats: {
+        favoritesCount: favRow.favoritesCount || 0,
+        entriesCount: trackerCountRow.entriesCount || 0,
+        todayTotals: null, // we can choose not to expose "today"
+      },
+      recentFavorites,
+    });
+  } catch (err) {
+    console.error("Public profile view error:", err);
+    res.status(500).send("Failed to load profile");
+  }
+});
+
+// edit profile
+app.get("/profile/edit", requireLogin, async (req, res) => {
+  const userId = req.session.userId;
+
+  try {
+    const [[user]] = await pool.query(
+      "SELECT userID, username, bio, isProfilePublic FROM usersMM WHERE userID = ?",
+      [userId]
+    );
+    if (!user) return res.redirect("/login");
+
+    res.render("profileEdit.ejs", { profileUser: user });
+  } catch (err) {
+    console.error("Profile edit view error:", err);
+    res.status(500).send("Failed to load profile edit page");
+  }
+});
+
+app.post("/profile/edit", requireLogin, async (req, res) => {
+  const userId = req.session.userId;
+  const { bio, isProfilePublic } = req.body;
+
+  try {
+    await pool.query(
+      `UPDATE usersMM 
+          SET bio = ?, 
+              isProfilePublic = ?
+        WHERE userID = ?`,
+      [
+        bio || null,
+        isProfilePublic === "on" ? 1 : 0,
+        userId,
+      ]
+    );
+
+    res.redirect("/profile");
+  } catch (err) {
+    console.error("Profile edit save error:", err);
+    res.status(500).send("Failed to update profile");
+  }
+});
+
+
+
+
 /* ============================================================
  *                        FAVORITES ROUTES
  * ============================================================*/
@@ -748,6 +912,7 @@ app.post("/tracker/:id/favorite", requireLogin, async (req, res) => {
 
     if (!recipeId) {
       recipeId = 1000000 + entry.id; // quick & dirty synthetic ID
+      // this is a fake number which just brings up a random calorie/protein/carbs? what the hell
     }
 
     // Ensure the recipe exists in foodRecipes to satisfy FK
@@ -769,7 +934,8 @@ app.post("/tracker/:id/favorite", requireLogin, async (req, res) => {
         userId,
         Number(recipeId),
         title,
-        null,     // no image for custom/manual meals 
+        null,     // no image for custom/manual meals, implement this later and will probably have to add some sort of moderation of what
+        // images you can use for the custom/manual meals
         cal,
         prot,
       ]
